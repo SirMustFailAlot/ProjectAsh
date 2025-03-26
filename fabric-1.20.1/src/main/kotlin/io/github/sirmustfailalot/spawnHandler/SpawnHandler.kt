@@ -34,10 +34,10 @@ object SpawnHandler {
         val pos = spawn.ctx.position
         val posValue = pos.x.toString() + ", " + pos.y.toString() + ", " + pos.z.toString()
 
-        // Get Nearest Player
+        // Get Nearest Player - FIXED VERSION
         val players = spawn.ctx.world.players()
-            .filter {pos.distToCenterSqr(pos.toVec3d()) <= 256 * 256 }
-            .minByOrNull {pos.distToCenterSqr(pos.toVec3d())}
+            .filter { it.isAlive }
+            .minByOrNull { it.position().distanceToSqr(pos.toVec3d()) } // Use player's position for distance calculation
 
         // Check to see if it's a shiny or a label that we like
         val pokemon = spawn.entity.pokemon

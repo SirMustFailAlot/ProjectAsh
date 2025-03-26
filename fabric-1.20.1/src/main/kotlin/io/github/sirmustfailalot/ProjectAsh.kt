@@ -16,9 +16,8 @@ object ProjectAsh : ModInitializer {
     private val logger = LoggerFactory.getLogger("project-ash")
 	val discordWebhookURL = ""
 	override fun onInitialize() {
-
-
-		CobblemonEvents.POKEMON_ENTITY_SPAWN.subscribe(Priority.LOWEST, SpawnHandler::handle)
 		logger.info("Project Ash ----------- Oh Dang, Did we Load, Heck Yeah!")
+		CobblemonEvents.POKEMON_ENTITY_SPAWN.subscribe(Priority.LOWEST, SpawnHandler::handle)
+
 	}
 }
