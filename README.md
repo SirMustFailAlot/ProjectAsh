@@ -31,6 +31,8 @@ Project Ash creates a configuration file named `ProjectAsh.conf` inside your `/c
 
 ## 💬 Example Announcements
 ### 📢 In-Game
+![In-Game_Announcement](https://github.com/user-attachments/assets/d3115993-9db7-4d3e-9da2-8db138b6f0f8)
 
 ### 🤖 Discord Notification
+<img width="321" height="199" alt="Discord_Announcement" src="https://github.com/user-attachments/assets/3969fb5c-7b39-4265-ba1d-2fddaf1a2a63" />
 
