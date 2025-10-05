@@ -1,0 +1,99 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
+
+plugins {
+    id 'org.jetbrains.kotlin.jvm' apply false
+}
+
+subprojects {
+
+    apply plugin: 'org.jetbrains.kotlin.jvm'
+    if (project.hasProperty('serialization_version')) {
+        apply plugin: 'org.jetbrains.kotlin.plugin.serialization'
+    }
+
+    java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+    java.withSourcesJar()
+    java.withJavadocJar()
+        
+    jar {
+        from(rootProject.file("LICENSE")) {
+            rename { "${it}_${mod_name}" }
+        }
+        manifest {
+            attributes([
+                'Specification-Title'     : mod_name,
+                'Specification-Vendor'    : mod_author,
+                'Specification-Version'   : project.jar.archiveVersion,
+                'Implementation-Title'    : project.name,
+                'Implementation-Version'  : project.jar.archiveVersion,
+                'Implementation-Vendor'   : mod_author,
+                'Implementation-Timestamp': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
+                'Timestamp'               : System.currentTimeMillis(),
+                'Built-On-Java'           : "${System.getProperty('java.vm.version')} (${System.getProperty('java.vm.vendor')})",
+                'Built-On-Minecraft'      : minecraft_version
+            ])
+        }
+    }
+
+    sourcesJar {
+        from(rootProject.file("LICENSE")) {
+            rename { "${it}_${mod_name}" }
+        }
+    }
+
+    repositories {
+
+        mavenCentral()
+
+        maven {
+            name = 'Sponge / Mixin'
+            url = 'https://repo.spongepowered.org/repository/maven-public/'
+        }
+
+        maven {
+            name = 'BlameJared Maven (CrT / Bookshelf)'
+            url = 'https://maven.blamejared.com'
+        }
+
+        maven {
+            name = 'cobblemon'
+            url = 'https://maven.impactdev.net/repository/development/'
+        }
+    }
+
+    dependencies {
+        implementation 'org.jetbrains.kotlin:kotlin-reflect'
+        implementation platform("org.jetbrains.kotlinx:kotlinx-coroutines-bom:$coroutines_version")
+        implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm'
+        implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-jdk8'
+        implementation("org.json:json:20230618")
+        implementation("com.github.kittinunf.fuel:fuel:2.3.1")
+        implementation("com.github.kittinunf.fuel:fuel-gson:2.3.1")
+        if (project.hasProperty('serialization_version')) {
+            implementation platform("org.jetbrains.kotlinx:kotlinx-serialization-bom:$serialization_version")
+            implementation 'org.jetbrains.kotlinx:kotlinx-serialization-core-jvm'
+            implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json-jvm'
+        }
+    }
+
+    tasks.withType(JavaCompile).configureEach {
+        it.options.encoding = 'UTF-8'
+        it.options.release = 21
+    }
+
+    tasks.withType(KotlinCompilationTask).configureEach {
+        compilerOptions {
+            javaParameters = true
+            jvmTarget = JvmTarget.JVM_21
+        }
+    }
+
+    // Disables Gradle's custom module metadata from being published to maven. The
+    // metadata includes mapped dependencies which are not reasonably consumable by
+    // other mod developers.
+    tasks.withType(GenerateModuleMetadata) {
+
+        enabled = false
+    }
+}
