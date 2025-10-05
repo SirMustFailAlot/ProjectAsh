@@ -1,26 +1,36 @@
-# MultiLoader Template
+# Project Ash: Annouce 'Em All!
 
-This project provides a Gradle project template that can compile Kotlin mods for both Forge and Fabric using a common sourceset. This project adds a dependency on [KotlinForForge](https://github.com/thedarkcolour/KotlinForForge) and [fabric-language-kotlin](https://github.com/FabricMC/fabric-language-kotlin).
+**Project Ash** is a minecraft addon for the popular Cobblemon mod. With Ash, you'll be informed of all shiny and legendary spawns that may be popping up in your server, not just in-game but also in discord
 
-## Getting Started
+## ✨ Features
 
-## IntelliJ IDEA
-This guide will show how to import the MultiLoader Template into IntelliJ IDEA. The setup process is roughly equivalent to setting up Forge and Fabric independently and should be very familiar to anyone who has worked with their MDKs.
+- 🔊 Server-wide announcements when shiny or legendary Pokémon spawn
+- 💬 Discord webhook notifications for rare Pokémon events
+- ⚙️ Automatic config generation (ProjectAsh.conf) with customizable options
+- 🧩 Modular design — fits easily into multi-loader environments (Fabric, Forge, etc.)  
 
-1. Clone or download this repository to your computer.
-2. Configure the project by editing the `group`, `mod_name`, `mod_author`, and `mod_id` properties in the `gradle.properties` file. You will also need to change the `rootProject.name`  property in `settings.gradle`.
-3. Open the template's root folder as a new project in IDEA. This is the folder that contains this README file and the gradlew executable.
-4. If your default JVM/JDK is not Java 17 you will encounter an error when opening the project. This error is fixed by going to `File > Settings > Build, Execution, Deployment > Build Tools > Gradle > Gradle JVM`and changing the value to a valid Java 17 JVM. You will also need to set the Project SDK to Java 17. This can be done by going to `File > Project Structure > Project SDK`. Once both have been set open the Gradle tab in IDEA and click the refresh button to reload the project.
-5. Open the Gradle tab in IDEA if it has not already been opened. Navigate to `Your Project > Common > Tasks > vanilla gradle > decompile`. Run this task to decompile Minecraft.
-6. Open the Gradle tab in IDEA if it has not already been opened. Navigate to `Your Project > Forge > Tasks > forgegradle runs > genIntellijRuns`. Run this task to set up run configurations for Forge.
-7. Open your Run/Debug Configurations. Under the Application category there should now be options to run Forge and Fabric projects. Select one of the client options and try to run it.
-8. Assuming you were able to run the game in step 7 your workspace should now be set up.
+---
 
-### Eclipse
-Eclipse is in my personal opinion irrelevant when it comes to writing Kotlin code so I will not spend time on it.
-Feel free to PR changes to support this :)
+## 📦 Installation
 
-## Development Guide
-When using this template the majority of your mod is developed in the Common project. The Common project is compiled against the vanilla game and is used to hold code that is shared between the different loader-specific versions of your mod. The Common project has no knowledge or access to ModLoader specific code, apis, or concepts. Code that requires something from a specific loader must be done through the project that is specific to that loader, such as the Forge or Fabric project.
+1. Download the latest version of Project Ash from Modrinth
+ or CurseForge
+2. Place the .jar into your server’s mods folder.
+3. Start the server.
+4. The first startup will automatically generate a configuration file:
+`/config/ProjectAsh.conf`
+5. Stop the server (optional) and open the config file to adjust settings as desired.
 
-Loader specific projects such as the Forge and Fabric project are used to load the Common project into the game. These projects also define code that is specific to that loader. Loader specific projects can access all of the code in the Common project. It is important to remember that the Common project can not access code from loader specific projects.
+## ⚙️ Configuration
+Project Ash creates a configuration file named `ProjectAsh.conf` inside your `/config/` directory.
+| Option        | Description | Default |
+| ------------- | ------ |------ |
+| discord_announcements   | Turns on and off discord annoucements (True = On, False = Off) |True |
+| discord_webook         | Webhook for the Discord Channel where the annoucements will be sent (see Settting up a Webhook for help) | "" |
+| server_announcement   | Turns on and off discord announcements (True = On, False = Off) | True |
+
+## 💬 Example Announcements
+### 📢 In-Game
+
+### 🤖 Discord Notification
+
