@@ -1,7 +1,7 @@
 package io.github.sirmustfailalot.platform
 
-import io.github.sirmustfailalot.Constants
 import io.github.sirmustfailalot.platform.services.PlatformHelper
+import io.github.sirmustfailalot.Constants
 import java.util.*
 
 // Service loaders are a built-in Java feature that allow us to locate implementations of an interface that vary from one
