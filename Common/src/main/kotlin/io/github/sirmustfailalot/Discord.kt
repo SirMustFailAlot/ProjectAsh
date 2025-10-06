@@ -1,15 +1,17 @@
 package io.github.sirmustfailalot
 
-import com.github.kittinunf.fuel.Fuel
-import com.github.kittinunf.fuel.core.extensions.jsonBody
-import com.github.kittinunf.result.Result
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
 import org.slf4j.LoggerFactory
+import java.time.Duration
 import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import java.net.URI
+import java.net.http.HttpClient
+import java.net.http.HttpRequest
+import java.net.http.HttpResponse
 
 // ───────────────────────────────────────────────────────────────────────────────
 // PokeAPI DTOs
@@ -58,6 +60,9 @@ private data class WebhookPayload(
 object Discord {
     private val logger = LoggerFactory.getLogger("ProjectAsh")
     private val gson = Gson()
+    private val http: HttpClient = HttpClient.newBuilder()
+        .connectTimeout(Duration.ofSeconds(8))
+        .build()
 
     // Single IO worker: keeps HTTP off the tick thread, reduces rate-limit headaches
     private val io: ExecutorService = Executors.newSingleThreadExecutor {
@@ -84,8 +89,6 @@ object Discord {
         // Return immediately; do everything off-thread
         io.execute {
             try {
-                // Adjust this import to match where your Config lives:
-                // e.g. import com.projectash.config.Config
                 val webhook = Config.get("discord_webhook").toString().trim()
                 if (webhook.isNullOrBlank()) {
                     logger.info("Project Ash: discord_webhook missing in config; skipping webhook send.")
@@ -116,47 +119,60 @@ object Discord {
 
                 val body = gson.toJson(WebhookPayload(embeds = listOf(embed)))
 
-                Fuel.post(webhook)
-                    .jsonBody(body)
-                    .response { _, response, result ->
-                        when (result) {
-                            is Result.Success -> {
-                                // no-op; you only want error logs
-                            }
-                            is Result.Failure -> {
-                                val code = response.statusCode
-                                val data = runCatching { String(response.data) }.getOrNull()
+                val request = HttpRequest.newBuilder(URI.create(webhook))
+                    .header("Content-Type", "application/json")
+                    .timeout(Duration.ofSeconds(8))
+                    .POST(HttpRequest.BodyPublishers.ofString(body))
+                    .build()
 
-                                // Handle rate limit once
-                                if (code == 429 && data != null) {
-                                    val retryAfterMs = parseRetryAfterMs(data)
-                                    if (retryAfterMs != null) {
-                                        io.execute {
-                                            try {
-                                                Thread.sleep(retryAfterMs)
-                                                Fuel.post(webhook).jsonBody(body).response { _, r2, res2 ->
-                                                    if (res2 is Result.Failure) {
-                                                        logger.info(
-                                                            "Project Ash: Discord retry failed ${r2.statusCode}: ${res2.getException().message}"
-                                                        )
-                                                    }
-                                                }
-                                            } catch (t: Throwable) {
-                                                logger.info("Project Ash: Discord retry error: ${t.message}")
+                http.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+                    .thenAccept { resp ->
+                        val code = resp.statusCode()
+                        if (code == 429) {
+                            val retry = resp.headers().firstValue("Retry-After").orElse("0").toDoubleOrNull()
+                            if (retry != null && retry > 0.0) {
+                                io.execute {
+                                    try {
+                                        Thread.sleep((retry * 1000).toLong())
+                                        http.send(request, HttpResponse.BodyHandlers.ofString()).also { r2 ->
+                                            if (r2.statusCode() >= 300) {
+                                                logger.info("Project Ash: Discord retry failed ${r2.statusCode()}: ${r2.body()}")
                                             }
                                         }
-                                        return@response
+                                    } catch (t: Throwable) {
+                                        logger.info("Project Ash: Discord retry error: ${t.message}")
                                     }
                                 }
-
-                                logger.info("Project Ash: Discord send failed $code: ${result.getException().message} ${data ?: ""}")
                             }
+                        } else if (code >= 300) {
+                            logger.info("Project Ash: Discord send failed $code: ${resp.body()}")
                         }
+                    }
+                    .exceptionally {
+                        logger.info("Project Ash: Discord send error: ${it.message}")
+                        null
                     }
             } catch (t: Throwable) {
                 logger.info("Project Ash: Discord send() error: ${t.message}")
             }
         }
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // HTTP helper for PokeAPI GETs
+    // ────────────────────────────────────────────────────────────────────────
+    private data class HttpText(val code: Int, val body: String?)
+    private fun httpGet(url: String): HttpText = try {
+        val req = HttpRequest.newBuilder(URI.create(url))
+            .header("User-Agent", "ProjectAsh/1.0")
+            .timeout(Duration.ofSeconds(8))
+            .GET()
+            .build()
+        val resp = http.send(req, HttpResponse.BodyHandlers.ofString())
+        HttpText(resp.statusCode(), resp.body())
+    } catch (t: Throwable) {
+        logger.info("Project Ash: HTTP GET error for '$url': ${t.message}")
+        HttpText(599, null) // sentinel for network error
     }
 
     // ────────────────────────────────────────────────────────────────────────
@@ -182,15 +198,11 @@ object Discord {
         val name = normalize(speciesName)
         val apiUrl = "https://pokeapi.co/api/v2/pokemon/$name"
 
-        val (_, response, result) = Fuel.get(apiUrl)
-            .header("User-Agent", "ProjectAsh/1.0")
-            .timeout(8_000)
-            .timeoutRead(8_000)
-            .responseString()
+        val (code, body) = httpGet(apiUrl)
 
-        return when (result) {
-            is Result.Success -> runCatching {
-                val p = gson.fromJson(result.get(), PokeApiPokemon::class.java)
+        return if (code == 200 && body != null) {
+            runCatching {
+                val p = gson.fromJson(body, PokeApiPokemon::class.java)
                 val s = p.sprites ?: return null
                 if (shiny) {
                     s.other?.officialArtwork?.frontShiny ?: s.frontShiny ?: s.frontShinyFemale
@@ -201,12 +213,11 @@ object Discord {
                 logger.info("Project Ash: sprite JSON parse error for '$name' (from '$speciesName'): ${it.message}")
                 null
             }
-            is Result.Failure -> {
-                if (response.statusCode != 404) {
-                    logger.info("Project Ash: PokeAPI ${response.statusCode} for '$name' (from '$speciesName'): ${result.getException().message}")
-                }
-                null
+        } else {
+            if (code != 404) {
+                logger.info("Project Ash: PokeAPI $code for '$name' (from '$speciesName')")
             }
+            null
         }
     }
 
@@ -215,19 +226,14 @@ object Discord {
         val species = normalize(speciesName)
         val speciesUrl = "https://pokeapi.co/api/v2/pokemon-species/$species"
 
-        val (_, response, result) = Fuel.get(speciesUrl)
-            .header("User-Agent", "ProjectAsh/1.0")
-            .timeout(8_000)
-            .timeoutRead(8_000)
-            .responseString()
-
-        if (result is Result.Failure) {
-            logger.info("Project Ash: species lookup ${response.statusCode} for '$species' (from '$speciesName'): ${result.getException().message}")
+        val (code, body) = httpGet(speciesUrl)
+        if (code != 200 || body == null) {
+            logger.info("Project Ash: species lookup $code for '$species' (from '$speciesName')")
             return null
         }
 
         val defaultVarietyName = runCatching {
-            val dto = gson.fromJson((result as Result.Success).get(), SpeciesDTO::class.java)
+            val dto = gson.fromJson(body, SpeciesDTO::class.java)
             val v = dto.varieties?.firstOrNull { it.isDefault } ?: dto.varieties?.firstOrNull()
             v?.pokemon?.name
         }.getOrNull()
@@ -243,18 +249,6 @@ object Discord {
     // ────────────────────────────────────────────────────────────────────────
     // Helpers
     // ────────────────────────────────────────────────────────────────────────
-    private fun parseRetryAfterMs(body: String): Long? = runCatching {
-        @Suppress("UNCHECKED_CAST")
-        val obj = gson.fromJson(body, Map::class.java) as Map<*, *>
-        val v = obj["retry_after"] ?: return null
-        val seconds = when (v) {
-            is Number -> v.toDouble()
-            is String -> v.toDoubleOrNull() ?: return null
-            else -> return null
-        }
-        (seconds * 1000).toLong()
-    }.getOrNull()
-
     /** Strong name normalization for PokeAPI resource keys. */
     private fun normalize(name: String): String =
         name.trim().lowercase()

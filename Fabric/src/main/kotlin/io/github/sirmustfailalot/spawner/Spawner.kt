@@ -2,19 +2,41 @@ package io.github.sirmustfailalot.spawner
 
 import com.cobblemon.mod.common.api.events.entity.SpawnEvent
 import com.cobblemon.mod.common.entity.pokemon.PokemonEntity
+import com.cobblemon.mod.common.api.spawning.context.SpawningContext
 import com.cobblemon.mod.common.util.toVec3d
+import net.minecraft.server.level.ServerLevel
+import net.minecraft.world.level.Level
 import io.github.sirmustfailalot.Announcement
 import io.github.sirmustfailalot.Discord
 import io.github.sirmustfailalot.ProjectAsh
-import net.minecraft.network.chat.Component
 import org.slf4j.LoggerFactory
 import java.util.Locale
 
 object Spawner {
     private val logger = LoggerFactory.getLogger("project-ash")
+    /** Works on Cobblemon where SpawningContext has getLevel() (newer) or getWorld() (older). */
+    private fun ctxServerLevel(ctx: SpawningContext): ServerLevel? {
+        // Try getLevel()
+        try {
+            val m = ctx.javaClass.getMethod("getLevel")
+            when (val v = m.invoke(ctx)) {
+                is ServerLevel -> return v
+                is Level -> return v as? ServerLevel
+            }
+        } catch (_: NoSuchMethodException) { /* fall through */ }
+        // Fallback getWorld()
+        return try {
+            val m = ctx.javaClass.getMethod("getWorld")
+            m.invoke(ctx) as? ServerLevel
+        } catch (t: Throwable) {
+            logger.info("Project Ash: could not resolve ServerLevel from SpawningContext (${t.javaClass.simpleName}: ${t.message})")
+            null
+        }
+    }
 
     fun handle(spawn: SpawnEvent<PokemonEntity>) {
-        val world = spawn.ctx.world
+        val world = ctxServerLevel(spawn.ctx) ?: return
+
         val dimensionName = world.dimension().toString()
         val dimension = when {
             world.dimension().toString().contains("overworld") -> "Overworld"
