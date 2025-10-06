@@ -2,6 +2,8 @@ package io.github.sirmustfailalot
 
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
+import net.minecraft.network.chat.Component
+import net.minecraft.server.MinecraftServer
 import org.slf4j.LoggerFactory
 import java.time.Duration
 import java.time.Instant
@@ -78,6 +80,7 @@ object Discord {
     // Public API
     // ────────────────────────────────────────────────────────────────────────
     fun send(
+        server: MinecraftServer?,
         dimension: String,
         playerName: String?,
         spawnType: String,
@@ -86,12 +89,12 @@ object Discord {
         speciesPlusForm: String,
         posValue: String
     ) {
-        // Return immediately; do everything off-thread
         io.execute {
             try {
                 val webhook = Config.get("discord_webhook").toString().trim()
-                if (webhook.isNullOrBlank()) {
-                    logger.info("Project Ash: discord_webhook missing in config; skipping webhook send.")
+                if (webhook.isNullOrBlank() || webhook == "https://your.webhook.url/here") {
+                    // Inform Server that Discord was not set up
+                    Announcement.discordWebhookFail(server)
                     return@execute
                 }
 

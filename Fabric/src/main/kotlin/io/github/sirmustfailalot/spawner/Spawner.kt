@@ -77,6 +77,6 @@ object Spawner {
         }
 
         Announcement.send(ProjectAsh.server, dimension, playerName, spawnType, speciesPlusForm, posValue)
-        Discord.send(dimension, playerName, spawnType, shiny, species, speciesPlusForm, posValue)
+        Discord.send(ProjectAsh.server, dimension, playerName, spawnType, shiny, species, speciesPlusForm, posValue)
     }
 }

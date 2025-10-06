@@ -5,9 +5,11 @@ import com.google.gson.GsonBuilder
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
+import org.slf4j.LoggerFactory
 import java.io.File
 
 object Config {
+    private val logger = LoggerFactory.getLogger("ProjectAsh")
     private val gson: Gson = GsonBuilder().setPrettyPrinting().create()
     private val configFile = File("config/ProjectAsh.json")
     private var config: JsonObject = JsonObject()
