@@ -14,10 +14,10 @@ import org.slf4j.LoggerFactory
 
 object ProjectAsh : ModInitializer {
     private val logger = LoggerFactory.getLogger("project-ash")
-    val webhook = Config.get("discord_webhook")
     var server: MinecraftServer? = null
     override fun onInitialize() {
         logger.info("Project Ash ----------- *Clears Throat*, is this thing on? *Taps Mic* Bogies")
+        Config.init()
 
         // Get the Server Information
         ServerLifecycleEvents.SERVER_STARTED.register { srv ->
