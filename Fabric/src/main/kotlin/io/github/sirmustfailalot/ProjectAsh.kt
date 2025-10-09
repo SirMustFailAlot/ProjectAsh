@@ -12,6 +12,17 @@ import net.minecraft.server.MinecraftServer
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents
 import org.slf4j.LoggerFactory
 
+// Commands
+import io.github.sirmustfailalot.projectash.commands.ProjectAshCommand
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback
+import com.mojang.brigadier.builder.LiteralArgumentBuilder
+import net.minecraft.commands.CommandSourceStack
+
+interface PASubcommand {
+    /** Return the literal node to hang under /projectash */
+    fun build(): LiteralArgumentBuilder<CommandSourceStack>
+}
+
 object ProjectAsh : ModInitializer {
     private val logger = LoggerFactory.getLogger("project-ash")
     var server: MinecraftServer? = null
@@ -29,5 +40,10 @@ object ProjectAsh : ModInitializer {
 
         // Create a spawn handle
         CobblemonEvents.POKEMON_ENTITY_SPAWN.subscribe(Priority.LOWEST, Spawner::handle)
+
+        // Register Commands
+        CommandRegistrationCallback.EVENT.register { dispatcher, _, _ ->
+            ProjectAshCommand.register(dispatcher)
+        }
     }
 }

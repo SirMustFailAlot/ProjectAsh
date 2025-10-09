@@ -16,7 +16,7 @@ data class DiscordConfig(
 )
 
 data class InGameConfig(
-    var announcements: Boolean = true,
+    var enabled: Boolean = true,
     var broadcast_login: Boolean = false,
     var broadcast_logout: Boolean = false
 )
@@ -96,9 +96,12 @@ object Config {
         saveLocked()
     }
 
-    // ── Convenience helpers (optional) ────────────────────────────────────────
+    // ── Convenience helpers ────────────────────────────────────────
     fun setDiscordWebhook(url: String) = write { it.discord.webhook = url }
     fun setDiscordEnabled(enabled: Boolean) = write { it.discord.enabled = enabled }
+    fun setDiscordThumbnails(enabled: Boolean) = write { it.discord.thumbnails = enabled }
+
+    fun setIngameEnabled(enabled: Boolean) = write { it.in_game.enabled = enabled }
 
     /** Ensure a player record exists and return it (in-memory). */
     fun ensurePlayer(name: String): PlayerRule {

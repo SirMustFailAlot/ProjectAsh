@@ -9,10 +9,13 @@ object Announcement {
 
     fun send(server: MinecraftServer?, dimension: String, playerName: String?, spawnType: String, species: String, posValue: String) {
         val message = "$playerName! $spawnType $species $dimension at $posValue"
+        val IngameEnabled = Config.data.in_game.enabled
 
-        server.let { server ->
-            server?.playerList?.players?.forEach { p ->
-                p.sendSystemMessage(Component.literal(message))
+        if (IngameEnabled) {
+            server.let { server ->
+                server?.playerList?.players?.forEach { p ->
+                    p.sendSystemMessage(Component.literal(message))
+                }
             }
         }
     }

@@ -90,73 +90,80 @@ object Discord {
     ) {
         io.execute {
             try {
-                val webhook = Config.data.discord.webhook
-                if (webhook.isNullOrBlank() || webhook == "https://your.webhook.url/here") {
-                    // Inform Server that Discord was not set up
-                    Announcement.discordWebhookFail(server)
-                    return@execute
-                }
+                val webhookEnabled = Config.data.discord.enabled
+                val Thumbnails = Config.data.discord.thumbnails
+                if (webhookEnabled) {
+                    val webhook = Config.data.discord.webhook
+                    if (webhook.isNullOrBlank() || webhook == "https://your.webhook.url/here") {
+                        // Inform Server that Discord was not set up
+                        Announcement.discordWebhookFail(server)
+                        return@execute
+                    }
 
-                var spriteUrl: String? = ""
-                // Sprite lookup (blocking here is OK—we're on the IO thread)
-                val normalised_species = normalize(species)
-                if (shiny) {
-                    spriteUrl = Config.data.sprites[normalised_species]?.shiny
-                } else {
-                    spriteUrl = Config.data.sprites[normalised_species]?.standard
-                }
+                    var spriteUrl: String? = ""
+                    // Sprite lookup (blocking here is OK—we're on the IO thread)
+                    val normalised_species = normalize(species)
+                    if (shiny) {
+                        spriteUrl = Config.data.sprites[normalised_species]?.shiny
+                    } else {
+                        spriteUrl = Config.data.sprites[normalised_species]?.standard
+                    }
 
-                val title = (if (shiny) "✨ " else "") + "$spawnType — $speciesPlusForm"
-                val fields = listOf(
-                    EmbedField("Dimension", dimension),
-                    EmbedField("Closest Player", playerName ?: "Unknown"),
-                    EmbedField("Position", "`$posValue`")
-                )
+                    val title = (if (shiny) "✨ " else "") + "$spawnType — $speciesPlusForm"
+                    val fields = listOf(
+                        EmbedField("Dimension", dimension),
+                        EmbedField("Closest Player", playerName ?: "Unknown"),
+                        EmbedField("Position", "`$posValue`")
+                    )
 
-                val embed = Embed(
-                    title = title,
-                    color = if (shiny) 0xE91E63 else 0xF1C40F,
-                    fields = fields,
-                    thumbnail = spriteUrl?.let { mapOf("url" to it) },
-                    footer = mapOf("text" to "ProjectAsh"),
-                    timestamp = Instant.now().toString()
-                )
+                    val embed = Embed(
+                        title = title,
+                        color = if (shiny) 0xE91E63 else 0xF1C40F,
+                        fields = fields,
+                        thumbnail = if (Thumbnails && spriteUrl != null)
+                            mapOf("url" to spriteUrl)
+                        else
+                            null,
+                        footer = mapOf("text" to "ProjectAsh"),
+                        timestamp = Instant.now().toString()
+                    )
 
-                val body = gson.toJson(WebhookPayload(embeds = listOf(embed)))
+                    val body = gson.toJson(WebhookPayload(embeds = listOf(embed)))
 
-                val request = HttpRequest.newBuilder(URI.create(webhook))
-                    .header("Content-Type", "application/json")
-                    .timeout(Duration.ofSeconds(8))
-                    .POST(HttpRequest.BodyPublishers.ofString(body))
-                    .build()
+                    val request = HttpRequest.newBuilder(URI.create(webhook))
+                        .header("Content-Type", "application/json")
+                        .timeout(Duration.ofSeconds(8))
+                        .POST(HttpRequest.BodyPublishers.ofString(body))
+                        .build()
 
-                http.sendAsync(request, HttpResponse.BodyHandlers.ofString())
-                    .thenAccept { resp ->
-                        val code = resp.statusCode()
-                        if (code == 429) {
-                            val retry = resp.headers().firstValue("Retry-After").orElse("0").toDoubleOrNull()
-                            if (retry != null && retry > 0.0) {
-                                io.execute {
-                                    try {
-                                        Thread.sleep((retry * 1000).toLong())
-                                        http.send(request, HttpResponse.BodyHandlers.ofString()).also { r2 ->
-                                            if (r2.statusCode() >= 300) {
-                                                logger.info("Project Ash: Discord retry failed ${r2.statusCode()}: ${r2.body()}")
+                    http.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+                        .thenAccept { resp ->
+                            val code = resp.statusCode()
+                            if (code == 429) {
+                                val retry = resp.headers().firstValue("Retry-After").orElse("0").toDoubleOrNull()
+                                if (retry != null && retry > 0.0) {
+                                    io.execute {
+                                        try {
+                                            Thread.sleep((retry * 1000).toLong())
+                                            http.send(request, HttpResponse.BodyHandlers.ofString()).also { r2 ->
+                                                if (r2.statusCode() >= 300) {
+                                                    logger.info("Project Ash: Discord retry failed ${r2.statusCode()}: ${r2.body()}")
+                                                }
                                             }
+                                        } catch (t: Throwable) {
+                                            logger.info("Project Ash: Discord retry error: ${t.message}")
                                         }
-                                    } catch (t: Throwable) {
-                                        logger.info("Project Ash: Discord retry error: ${t.message}")
                                     }
                                 }
+                            } else if (code >= 300) {
+                                logger.info("Project Ash: Discord send failed $code: ${resp.body()}")
                             }
-                        } else if (code >= 300) {
-                            logger.info("Project Ash: Discord send failed $code: ${resp.body()}")
                         }
-                    }
-                    .exceptionally {
-                        logger.info("Project Ash: Discord send error: ${it.message}")
-                        null
-                    }
+                        .exceptionally {
+                            logger.info("Project Ash: Discord send error: ${it.message}")
+                            null
+                        }
+                }
             } catch (t: Throwable) {
                 logger.info("Project Ash: Discord send() error: ${t.message}")
             }
