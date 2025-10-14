@@ -82,7 +82,7 @@ object Discord {
         server: MinecraftServer?,
         dimension: String,
         playerName: String?,
-        spawnType: String,
+        spawnType: List<String>,
         shiny: Boolean,
         species: String,
         speciesPlusForm: String,
@@ -100,6 +100,8 @@ object Discord {
                         return@execute
                     }
 
+                    val spawnTypeString = labelsToSpawnTypeString(spawnType)
+
                     var spriteUrl: String? = ""
                     // Sprite lookup (blocking here is OK—we're on the IO thread)
                     val normalised_species = normalize(species)
@@ -109,7 +111,7 @@ object Discord {
                         spriteUrl = Config.data.sprites[normalised_species]?.standard
                     }
 
-                    val title = (if (shiny) "✨ " else "") + "$spawnType — $speciesPlusForm"
+                    val title = (if (shiny) "✨ " else "") + "$spawnTypeString — $speciesPlusForm"
                     val fields = listOf(
                         EmbedField("Dimension", dimension),
                         EmbedField("Closest Player", playerName ?: "Unknown"),
@@ -200,4 +202,23 @@ object Discord {
             .replace("é", "e")    // "Flabébé" -> "flabebe"
             .replace("♀", "-f")   // "Nidoran♀" -> "nidoran-f"
             .replace("♂", "-m")   // "Nidoran♂" -> "nidoran-m"
+
+    fun labelsToSpawnTypeString(labels: List<String>): String {
+        if (labels.isEmpty()) return ""
+
+        // Normalize and unique them
+        val normalized = labels
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .distinctBy { it.lowercase() }
+
+        // Ensure "Shiny" is first if it exists (case-insensitive)
+        val shinyFirst = normalized.sortedWith(compareByDescending<String> {
+            it.equals("shiny", ignoreCase = true)
+        })
+
+        // Combine with spaces
+        return shinyFirst.joinToString(" ")
+    }
+
 }

@@ -1,11 +1,11 @@
 package io.github.sirmustfailalot
-import io.github.sirmustfailalot.spawner.Spawner
 
 import net.fabricmc.api.ModInitializer
 
 // Cobblemon
 import com.cobblemon.mod.common.api.Priority
 import com.cobblemon.mod.common.api.events.CobblemonEvents
+import com.cobblemon.mod.common.entity.pokemon.PokemonEntity
 
 // World
 import net.minecraft.server.MinecraftServer
@@ -17,6 +17,7 @@ import io.github.sirmustfailalot.projectash.commands.ProjectAshCommand
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
 import net.minecraft.commands.CommandSourceStack
+import net.minecraft.server.level.ServerPlayer
 
 interface PASubcommand {
     /** Return the literal node to hang under /projectash */
@@ -30,7 +31,6 @@ object ProjectAsh : ModInitializer {
         logger.info("Project Ash ----------- *Clears Throat*, is this thing on? *Taps Mic* Bogies")
         Config.init()
 
-        // Get the Server Information
         ServerLifecycleEvents.SERVER_STARTED.register { srv ->
             server = srv
         }
@@ -38,12 +38,23 @@ object ProjectAsh : ModInitializer {
             server = null
         }
 
-        // Create a spawn handle
-        CobblemonEvents.POKEMON_ENTITY_SPAWN.subscribe(Priority.LOWEST, Spawner::handle)
-
-        // Register Commands
         CommandRegistrationCallback.EVENT.register { dispatcher, _, _ ->
             ProjectAshCommand.register(dispatcher)
         }
+
+        CobblemonEvents.POKEMON_ENTITY_SPAWN.subscribe(Priority.LOWEST, SpawnTracker::onSpawn)
+        CobblemonEvents.POKEMON_CAPTURED.subscribe { ev ->
+            val player: ServerPlayer = ev.player
+            val pokemon = ev.pokemon
+            SpawnTracker.onCapture(player=player, pokemon=pokemon)
+        }
+        // CobblemonEvents.POKEMON_FAINTED.subscribe(Priority.LOWEST, SpawnTracker::onFainted)
+
+        // 4) Vanilla removal (to detect natural despawns)
+        //ServerEntityEvents.ENTITY_UNLOAD.register { entity, _world ->
+        //    if (entity is PokemonEntity) {
+        //        SpawnTracker.onRemoved(entity, entity.removalReason)
+        //    }
+        //}
     }
 }
