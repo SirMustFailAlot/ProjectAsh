@@ -27,6 +27,7 @@ object SpawnTracker {
         val pokemonUuid: UUID,
         val spawntype: List<String>,
         val species: String,
+        val speciesForm: String,
         val closestplayer: String,
         val spawnedAt: Long = System.currentTimeMillis(),
         @Volatile var outcome: Outcome? = null,
@@ -101,6 +102,7 @@ object SpawnTracker {
             spawntype = spawnType,
             closestplayer = playerName,
             species = spawn.entity.pokemon.species.name,
+            speciesForm = speciesPlusForm,
             ref = WeakReference(spawn.entity)
         )
 
@@ -109,13 +111,14 @@ object SpawnTracker {
         } else {
             logger.info("Spawn: $pokeUuid - $spawnType - $species")
             Announcement.spawn(ProjectAsh.server, dimension, playerName, spawnType, speciesPlusForm, posValue)
-            Discord.send(ProjectAsh.server, dimension, playerName, spawnType, shiny, species, speciesPlusForm, posValue)
+            Discord.spawn(ProjectAsh.server, dimension, playerName, spawnType, shiny, species, speciesPlusForm, posValue)
         }
     }
 
     fun onCapture(player: ServerPlayer, pokemon: Pokemon) {
         val t = findTracked(pokemon.uuid) ?: return
-        Announcement.caught(ProjectAsh.server, t.closestplayer, t.spawntype, t.species)
+        Announcement.capture(ProjectAsh.server, t.closestplayer, t.spawntype, t.species)
+        Discord.captureOrFainted("Caught", ProjectAsh.server, player.gameProfile.name, t.spawntype, t.species, t.speciesForm)
         tracked.remove(pokemon.uuid)
     }
 

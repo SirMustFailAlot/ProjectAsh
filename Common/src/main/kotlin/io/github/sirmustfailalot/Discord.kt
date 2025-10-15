@@ -1,6 +1,7 @@
 package io.github.sirmustfailalot
 
 import com.google.gson.Gson
+import com.google.gson.JsonObject
 import com.google.gson.annotations.SerializedName
 import net.minecraft.network.chat.Component
 import net.minecraft.server.MinecraftServer
@@ -14,6 +15,7 @@ import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
+import kotlin.compareTo
 
 // ───────────────────────────────────────────────────────────────────────────────
 // PokeAPI DTOs
@@ -45,7 +47,8 @@ private data class NamedUrl(val name: String?, val url: String?)
 // ───────────────────────────────────────────────────────────────────────────────
 private data class EmbedField(val name: String, val value: String, val inline: Boolean = false)
 private data class Embed(
-    val title: String,
+    val author: Map<String, String>? = null,
+    val title: String? = null,
     val color: Int? = null,
     val fields: List<EmbedField> = emptyList(),
     val thumbnail: Map<String, String>? = null,
@@ -78,8 +81,8 @@ object Discord {
     // ────────────────────────────────────────────────────────────────────────
     // Public API
     // ────────────────────────────────────────────────────────────────────────
-    fun send(
-        server: MinecraftServer?,
+    fun spawn(
+        server: MinecraftServer?,           // Required for config alert
         dimension: String,
         playerName: String?,
         spawnType: List<String>,
@@ -95,22 +98,16 @@ object Discord {
                 if (webhookEnabled) {
                     val webhook = Config.data.discord.webhook
                     if (webhook.isNullOrBlank() || webhook == "https://your.webhook.url/here") {
-                        // Inform Server that Discord was not set up
                         Announcement.discordWebhookFail(server)
                         return@execute
                     }
 
                     val spawnTypeString = labelsToSpawnTypeString(spawnType)
-
-                    var spriteUrl: String? = ""
-                    // Sprite lookup (blocking here is OK—we're on the IO thread)
-                    val normalised_species = normalize(species)
-                    if (shiny) {
-                        spriteUrl = Config.data.sprites[normalised_species]?.shiny
+                    val normalisedSpecies = normalize(species)
+                    val spriteUrl = if (shiny) {
+                        Config.data.sprites[normalisedSpecies]?.shiny
                     } else {
-                        spriteUrl = Config.data.sprites[normalised_species]?.standard
-                    }
-
+                        Config.data.sprites[normalisedSpecies]?.standard}
                     val title = (if (shiny) "✨ " else "") + "$spawnTypeString — $speciesPlusForm"
                     val fields = listOf(
                         EmbedField("Dimension", dimension),
@@ -131,46 +128,118 @@ object Discord {
                     )
 
                     val body = gson.toJson(WebhookPayload(embeds = listOf(embed)))
-
-                    val request = HttpRequest.newBuilder(URI.create(webhook))
-                        .header("Content-Type", "application/json")
-                        .timeout(Duration.ofSeconds(8))
-                        .POST(HttpRequest.BodyPublishers.ofString(body))
-                        .build()
-
-                    http.sendAsync(request, HttpResponse.BodyHandlers.ofString())
-                        .thenAccept { resp ->
-                            val code = resp.statusCode()
-                            if (code == 429) {
-                                val retry = resp.headers().firstValue("Retry-After").orElse("0").toDoubleOrNull()
-                                if (retry != null && retry > 0.0) {
-                                    io.execute {
-                                        try {
-                                            Thread.sleep((retry * 1000).toLong())
-                                            http.send(request, HttpResponse.BodyHandlers.ofString()).also { r2 ->
-                                                if (r2.statusCode() >= 300) {
-                                                    logger.info("Project Ash: Discord retry failed ${r2.statusCode()}: ${r2.body()}")
-                                                }
-                                            }
-                                        } catch (t: Throwable) {
-                                            logger.info("Project Ash: Discord retry error: ${t.message}")
-                                        }
-                                    }
-                                }
-                            } else if (code >= 300) {
-                                logger.info("Project Ash: Discord send failed $code: ${resp.body()}")
-                            }
-                        }
-                        .exceptionally {
-                            logger.info("Project Ash: Discord send error: ${it.message}")
-                            null
-                        }
+                    sendMessage(webhook, body)
                 }
             } catch (t: Throwable) {
                 logger.info("Project Ash: Discord send() error: ${t.message}")
             }
         }
     }
+
+    fun captureOrFainted(
+        eventType: String,
+        server: MinecraftServer?,           // Required for config alert
+        playerName: String?,
+        spawnType: List<String>,
+        species: String,
+        speciesPlusForm: String
+    ) {
+        io.execute {
+            try {
+                val webhookEnabled = Config.data.discord.enabled
+                val Thumbnails = Config.data.discord.thumbnails
+                if (webhookEnabled) {
+                    val webhook = Config.data.discord.webhook
+                    if (webhook.isNullOrBlank() || webhook == "https://your.webhook.url/here") {
+                        Announcement.discordWebhookFail(server)
+                        return@execute
+                    }
+
+                    val shiny = when {spawnType.any { it.equals("shiny", ignoreCase = true)} -> true else -> false}
+
+                    val spawnTypeString = labelsToSpawnTypeString(spawnType)
+                    val normalisedSpecies = normalize(species)
+                    val spriteUrl = if (shiny) {
+                        Config.data.sprites[normalisedSpecies]?.shiny
+                    } else {
+                        Config.data.sprites[normalisedSpecies]?.standard}
+                    val title = if (eventType == "Captured") {"$eventType $speciesPlusForm!"} else {"$speciesPlusForm $eventType!"}
+                    val fields = listOf(
+                        EmbedField("Player", playerName ?: "Unknown"),
+                        EmbedField("Spawn Type", spawnTypeString)
+                    )
+
+                    val iconUrl = when {
+                        spawnType.any { it.equals("legendary", ignoreCase = true) } ->
+                            "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/master-ball.png" // URL A
+                        spawnType.any { it.equals("ultra-beast", ignoreCase = true) } ->
+                            "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/ultra-ball.png"  // URL B
+                        spawnType.any { it.equals("shiny", ignoreCase = true) } ->
+                            "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/luxury-ball.png" // URL C
+                        else ->
+                            "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png"   // URL D
+                    }
+
+                    val embed = Embed(
+                        author = mapOf(
+                            "name" to title,            // zero-width space
+                            "icon_url" to iconUrl          // your Poké Ball URL
+                        ),
+                        color = if (shiny) 0xE91E63 else 0xF1C40F,
+                        fields = fields,
+                        thumbnail = if (Thumbnails && spriteUrl != null)
+                            mapOf("url" to spriteUrl)
+                        else
+                            null,
+                        footer = mapOf("text" to "ProjectAsh"),
+                        timestamp = Instant.now().toString()
+                    )
+
+                    val body = gson.toJson(WebhookPayload(embeds = listOf(embed)))
+                    sendMessage(webhook, body)
+                }
+            } catch (t: Throwable) {
+                logger.info("Project Ash: Discord send() error: ${t.message}")
+            }
+        }
+    }
+
+    fun sendMessage(webhook: String, body: String) {
+        val request = HttpRequest.newBuilder(URI.create(webhook))
+            .header("Content-Type", "application/json")
+            .timeout(Duration.ofSeconds(8))
+            .POST(HttpRequest.BodyPublishers.ofString(body))
+            .build()
+
+        http.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+            .thenAccept { resp ->
+                val code = resp.statusCode()
+                if (code == 429) {
+                    val retry = resp.headers().firstValue("Retry-After").orElse("0").toDoubleOrNull()
+                    if (retry != null && retry > 0.0) {
+                        io.execute {
+                            try {
+                                Thread.sleep((retry * 1000).toLong())
+                                http.send(request, HttpResponse.BodyHandlers.ofString()).also { r2 ->
+                                    if (r2.statusCode() >= 300) {
+                                        logger.info("Project Ash: Discord retry failed ${r2.statusCode()}: ${r2.body()}")
+                                    }
+                                }
+                            } catch (t: Throwable) {
+                                logger.info("Project Ash: Discord retry error: ${t.message}")
+                            }
+                        }
+                    }
+                } else if (code >= 300) {
+                    logger.info("Project Ash: Discord send failed $code: ${resp.body()}")
+                }
+            }
+            .exceptionally {
+                logger.info("Project Ash: Discord send error: ${it.message}")
+                null
+            }
+    }
+
 
     // ────────────────────────────────────────────────────────────────────────
     // HTTP helper for PokeAPI GETs

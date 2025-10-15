@@ -57,7 +57,7 @@ object Announcement {
         }
     }
 
-    fun caught(server: MinecraftServer?, playerName: String?, spawnType: List<String>, species: String) {
+    fun capture(server: MinecraftServer?, playerName: String?, spawnType: List<String>, species: String) {
         val ingameEnabled = Config.data.in_game.enabled
         if (ingameEnabled) {
             val message = renderLabeledMessage(
