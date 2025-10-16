@@ -72,6 +72,21 @@ object Announcement {
         }
     }
 
+    fun fainted(server: MinecraftServer?, spawnType: List<String>, species: String) {
+        val ingameEnabled = Config.data.in_game.enabled
+        if (ingameEnabled) {
+            val message = renderLabeledMessage(
+                labelsInOrder = spawnType,
+                messageTail = "$species fainted! Well... Back to it then! :(")
+
+            server.let { server ->
+                server?.playerList?.players?.forEach { p ->
+                    p.sendSystemMessage(message)
+                }
+            }
+        }
+    }
+
     fun discordWebhookFail(server: MinecraftServer?) {
         logger.info("Project Ash: discord_webhook missing in config; skipping webhook send.")
         val message = renderLabeledMessage(

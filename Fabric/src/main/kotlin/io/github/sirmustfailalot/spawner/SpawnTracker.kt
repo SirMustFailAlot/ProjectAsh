@@ -118,29 +118,16 @@ object SpawnTracker {
     fun onCapture(player: ServerPlayer, pokemon: Pokemon) {
         val t = findTracked(pokemon.uuid) ?: return
         Announcement.capture(ProjectAsh.server, t.closestplayer, t.spawntype, t.species)
-        Discord.captureOrFainted("Caught", ProjectAsh.server, player.gameProfile.name, t.spawntype, t.species, t.speciesForm)
+        Discord.captureOrFainted(eventType="Captured", server=ProjectAsh.server, playerName=player.gameProfile.name, spawnType=t.spawntype, species=t.species, speciesPlusForm=t.speciesForm)
         tracked.remove(pokemon.uuid)
     }
 
-
-//    fun onFainted(capture: PokemonFaintedEvent) {
-//        val t = findTracked(capture.pokemon.entity) ?: return
-//        val uuid = capture.pokemon.entity?.uuid?: logger.info("Fuck fuck fuck fuck fuck smurf fuck fuck fuck")
-//        val shiny = capture.pokemon.shiny
-//        val labelsWeWant = listOf("legendary")
-//        val label = capture.pokemon.form.labels.firstOrNull { it in labelsWeWant}
-//        val spawnType = when {
-//            shiny && label != null -> "Shiny Legendary"
-//            shiny && label == null -> "Shiny"
-//            !shiny && label != null -> "Legendary"
-//            else -> "DO NOT TRACK" // Fallback case
-//        }
-//        val species = capture.pokemon.species.translatedName.string
-//        logger.info("Fainted: $uuid - $spawnType - $species")
-//        t.outcome = Outcome.CAUGHT
-//        Announcement.caught(ProjectAsh.server, t.closestplayer, t.spawntype, t.species)
-//        tracked.remove(t.entityUuid)
-//    }
+    fun onFainted(capture: PokemonFaintedEvent) {
+        val t = findTracked(capture.pokemon.uuid) ?: return
+        Announcement.fainted(ProjectAsh.server, t.spawntype, t.species)
+        Discord.captureOrFainted(eventType="Fainted", server=ProjectAsh.server, spawnType=t.spawntype, species=t.species, speciesPlusForm=t.speciesForm)
+        tracked.remove(capture.pokemon.uuid)
+    }
 
 
     /** Call from ENTITY_UNLOAD or equivalent */

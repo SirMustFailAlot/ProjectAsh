@@ -139,7 +139,7 @@ object Discord {
     fun captureOrFainted(
         eventType: String,
         server: MinecraftServer?,           // Required for config alert
-        playerName: String?,
+        playerName: String? = null,
         spawnType: List<String>,
         species: String,
         speciesPlusForm: String
@@ -163,34 +163,37 @@ object Discord {
                         Config.data.sprites[normalisedSpecies]?.shiny
                     } else {
                         Config.data.sprites[normalisedSpecies]?.standard}
-                    val title = if (eventType == "Captured") {"$eventType $speciesPlusForm!"} else {"$speciesPlusForm $eventType!"}
-                    val fields = listOf(
-                        EmbedField("Player", playerName ?: "Unknown"),
-                        EmbedField("Spawn Type", spawnTypeString)
-                    )
+                    val title = if (eventType == "Captured") {"✅ $eventType $speciesPlusForm!"} else {"❌ $speciesPlusForm $eventType!"}
+                    val fields = if (eventType == "Captured")
+                        {
+                            listOf(
+                                EmbedField("Spawn Type", spawnTypeString),
+                                EmbedField("Player", playerName ?: "Unknown"))
+                        } else {
+                            listOf(
+                                EmbedField("Spawn Type", spawnTypeString))}
 
-                    val iconUrl = when {
-                        spawnType.any { it.equals("legendary", ignoreCase = true) } ->
-                            "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/master-ball.png" // URL A
-                        spawnType.any { it.equals("ultra-beast", ignoreCase = true) } ->
-                            "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/ultra-ball.png"  // URL B
-                        spawnType.any { it.equals("shiny", ignoreCase = true) } ->
-                            "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/luxury-ball.png" // URL C
-                        else ->
-                            "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png"   // URL D
-                    }
+//                    val iconUrl = when {
+//                        spawnType.any { it.equals("legendary", ignoreCase = true) } ->
+//                            "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/master-ball.png" // URL A
+//                        spawnType.any { it.equals("ultra-beast", ignoreCase = true) } ->
+//                            "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/ultra-ball.png"  // URL B
+//                        spawnType.any { it.equals("shiny", ignoreCase = true) } ->
+//                            "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/luxury-ball.png" // URL C
+//                        else ->
+//                            "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png"   // URL D
+//                    }
 
                     val embed = Embed(
-                        author = mapOf(
-                            "name" to title,            // zero-width space
-                            "icon_url" to iconUrl          // your Poké Ball URL
-                        ),
+                        title = title,
                         color = if (shiny) 0xE91E63 else 0xF1C40F,
                         fields = fields,
-                        thumbnail = if (Thumbnails && spriteUrl != null)
-                            mapOf("url" to spriteUrl)
-                        else
-                            null,
+                        thumbnail = if (eventType == "Captured" && Thumbnails && spriteUrl != null)
+                        {mapOf("url" to spriteUrl)}
+                        else {
+                            if (eventType == "Fainted")
+                            {mapOf("url" to "https://s-media-cache-ak0.pinimg.com/600x315/b1/20/08/b120087f3a904bda147251beaedf5755.jpg")} else {null}
+                        },
                         footer = mapOf("text" to "ProjectAsh"),
                         timestamp = Instant.now().toString()
                     )

@@ -48,7 +48,8 @@ object ProjectAsh : ModInitializer {
             val pokemon = ev.pokemon
             SpawnTracker.onCapture(player=player, pokemon=pokemon)
         }
-        // CobblemonEvents.POKEMON_FAINTED.subscribe(Priority.LOWEST, SpawnTracker::onFainted)
+
+        CobblemonEvents.POKEMON_FAINTED.subscribe(Priority.LOWEST, SpawnTracker::onFainted)
 
         // 4) Vanilla removal (to detect natural despawns)
         //ServerEntityEvents.ENTITY_UNLOAD.register { entity, _world ->
