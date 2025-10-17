@@ -87,6 +87,21 @@ object Announcement {
         }
     }
 
+    fun removed(server: MinecraftServer?, spawnType: List<String>, species: String) {
+        val ingameEnabled = Config.data.in_game.enabled
+        if (ingameEnabled) {
+            val message = renderLabeledMessage(
+                labelsInOrder = spawnType,
+                messageTail = "$species has despawned!")
+
+            server.let { server ->
+                server?.playerList?.players?.forEach { p ->
+                    p.sendSystemMessage(message)
+                }
+            }
+        }
+    }
+
     fun discordWebhookFail(server: MinecraftServer?) {
         logger.info("Project Ash: discord_webhook missing in config; skipping webhook send.")
         val message = renderLabeledMessage(

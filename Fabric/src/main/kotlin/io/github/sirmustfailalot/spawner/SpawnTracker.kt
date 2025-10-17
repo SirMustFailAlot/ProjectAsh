@@ -118,26 +118,28 @@ object SpawnTracker {
     fun onCapture(player: ServerPlayer, pokemon: Pokemon) {
         val t = findTracked(pokemon.uuid) ?: return
         Announcement.capture(ProjectAsh.server, t.closestplayer, t.spawntype, t.species)
-        Discord.captureOrFainted(eventType="Captured", server=ProjectAsh.server, playerName=player.gameProfile.name, spawnType=t.spawntype, species=t.species, speciesPlusForm=t.speciesForm)
+        Discord.announcement(eventType="Captured", server=ProjectAsh.server, playerName=player.gameProfile.name, spawnType=t.spawntype, species=t.species, speciesPlusForm=t.speciesForm)
         tracked.remove(pokemon.uuid)
     }
 
     fun onFainted(capture: PokemonFaintedEvent) {
         val t = findTracked(capture.pokemon.uuid) ?: return
         Announcement.fainted(ProjectAsh.server, t.spawntype, t.species)
-        Discord.captureOrFainted(eventType="Fainted", server=ProjectAsh.server, spawnType=t.spawntype, species=t.species, speciesPlusForm=t.speciesForm)
+        Discord.announcement(eventType="Fainted", server=ProjectAsh.server, spawnType=t.spawntype, species=t.species, speciesPlusForm=t.speciesForm)
         tracked.remove(capture.pokemon.uuid)
     }
 
 
     /** Call from ENTITY_UNLOAD or equivalent */
-    //fun onRemoved(entity: PokemonEntity, removalReason: Entity.RemovalReason?) {
-    //    val t = tracked[entity.uuid] ?: return
-    //    if (t.outcome == null) {
-    //        t.outcome = Outcome.NATURAL_DESPAWN
-    //    }
-    //    finalizeAndCleanup(t, reason = "removed:${removalReason?.name}")
-    //}
+    fun onRemoved(entity: PokemonEntity, removalReason: Entity.RemovalReason?) {
+        val t = tracked[entity.pokemon.uuid] ?: return
+        if (t.outcome == null) {
+            t.outcome = Outcome.NATURAL_DESPAWN
+        }
+        Announcement.removed(ProjectAsh.server, t.spawntype, t.species)
+        Discord.announcement(eventType="Despawned", server=ProjectAsh.server, spawnType=t.spawntype, species=t.species, speciesPlusForm=t.speciesForm)
+        tracked.remove(entity.pokemon.uuid)
+    }
 
     // ---- helpers ----
     private fun findTracked(pokemonUuid: UUID): Tracked? {

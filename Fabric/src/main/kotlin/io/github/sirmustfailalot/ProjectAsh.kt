@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory
 import io.github.sirmustfailalot.projectash.commands.ProjectAshCommand
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.server.level.ServerPlayer
 
@@ -52,10 +53,10 @@ object ProjectAsh : ModInitializer {
         CobblemonEvents.POKEMON_FAINTED.subscribe(Priority.LOWEST, SpawnTracker::onFainted)
 
         // 4) Vanilla removal (to detect natural despawns)
-        //ServerEntityEvents.ENTITY_UNLOAD.register { entity, _world ->
-        //    if (entity is PokemonEntity) {
-        //        SpawnTracker.onRemoved(entity, entity.removalReason)
-        //    }
-        //}
+        ServerEntityEvents.ENTITY_UNLOAD.register { entity, _world ->
+            if (entity is PokemonEntity) {
+                SpawnTracker.onRemoved(entity, entity.removalReason)
+            }
+        }
     }
 }
