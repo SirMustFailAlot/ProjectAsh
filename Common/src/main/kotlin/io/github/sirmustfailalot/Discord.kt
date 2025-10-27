@@ -82,7 +82,7 @@ object Discord {
     // Public API
     // ────────────────────────────────────────────────────────────────────────
     fun spawn(
-        server: MinecraftServer?,           // Required for config alert
+        server: MinecraftServer?,
         dimension: String,
         playerName: String?,
         spawnType: List<String>,
@@ -117,7 +117,7 @@ object Discord {
 
                     val embed = Embed(
                         title = title,
-                        color = if (shiny) 0xE91E63 else 0xF1C40F,
+                        color = if (shiny) 0xF1C40F else 0x2ECC71,
                         fields = fields,
                         thumbnail = if (Thumbnails && spriteUrl != null)
                             mapOf("url" to spriteUrl)
@@ -138,7 +138,7 @@ object Discord {
 
     fun announcement(
         eventType: String,
-        server: MinecraftServer?,           // Required for config alert
+        server: MinecraftServer?,
         playerName: String? = null,
         spawnType: List<String>,
         species: String,
@@ -173,20 +173,9 @@ object Discord {
                             listOf(
                                 EmbedField("Spawn Type", spawnTypeString))}
 
-//                    val iconUrl = when {
-//                        spawnType.any { it.equals("legendary", ignoreCase = true) } ->
-//                            "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/master-ball.png" // URL A
-//                        spawnType.any { it.equals("ultra-beast", ignoreCase = true) } ->
-//                            "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/ultra-ball.png"  // URL B
-//                        spawnType.any { it.equals("shiny", ignoreCase = true) } ->
-//                            "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/luxury-ball.png" // URL C
-//                        else ->
-//                            "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png"   // URL D
-//                    }
-
                     val embed = Embed(
                         title = title,
-                        color = if (shiny) 0xE91E63 else 0xF1C40F,
+                        color = if (shiny) 0xF1C40F else 0x2ECC71,
                         fields = fields,
                         thumbnail = if (eventType == "Captured" && Thumbnails && spriteUrl != null)
                         {mapOf("url" to spriteUrl)}

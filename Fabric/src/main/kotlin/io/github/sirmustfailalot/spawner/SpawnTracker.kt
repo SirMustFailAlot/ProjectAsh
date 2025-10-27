@@ -22,6 +22,7 @@ import java.util.Locale
 object SpawnTracker {
     private val logger = LoggerFactory.getLogger("project-ash")
     private val tracked = java.util.concurrent.ConcurrentHashMap<UUID, Tracked>() // key: entityUuid
+    private val scheduler = java.util.concurrent.Executors.newScheduledThreadPool(1)
 
     data class Tracked(
         val pokemonUuid: UUID,
@@ -117,28 +118,40 @@ object SpawnTracker {
 
     fun onCapture(player: ServerPlayer, pokemon: Pokemon) {
         val t = findTracked(pokemon.uuid) ?: return
+        tracked.remove(pokemon.uuid)
         Announcement.capture(ProjectAsh.server, t.closestplayer, t.spawntype, t.species)
         Discord.announcement(eventType="Captured", server=ProjectAsh.server, playerName=player.gameProfile.name, spawnType=t.spawntype, species=t.species, speciesPlusForm=t.speciesForm)
-        tracked.remove(pokemon.uuid)
     }
 
     fun onFainted(capture: PokemonFaintedEvent) {
         val t = findTracked(capture.pokemon.uuid) ?: return
+        tracked.remove(capture.pokemon.uuid)
         Announcement.fainted(ProjectAsh.server, t.spawntype, t.species)
         Discord.announcement(eventType="Fainted", server=ProjectAsh.server, spawnType=t.spawntype, species=t.species, speciesPlusForm=t.speciesForm)
-        tracked.remove(capture.pokemon.uuid)
     }
 
 
-    /** Call from ENTITY_UNLOAD or equivalent */
     fun onRemoved(entity: PokemonEntity, removalReason: Entity.RemovalReason?) {
-        val t = tracked[entity.pokemon.uuid] ?: return
-        if (t.outcome == null) {
-            t.outcome = Outcome.NATURAL_DESPAWN
-        }
-        Announcement.removed(ProjectAsh.server, t.spawntype, t.species)
-        Discord.announcement(eventType="Despawned", server=ProjectAsh.server, spawnType=t.spawntype, species=t.species, speciesPlusForm=t.speciesForm)
-        tracked.remove(entity.pokemon.uuid)
+        val pokeUuid = entity.pokemon.uuid
+
+        scheduler.schedule({
+            ProjectAsh.server?.execute {
+                val t = tracked[pokeUuid] ?: return@execute
+
+                if (t.outcome == null) {
+                    tracked.remove(pokeUuid)
+
+                    Announcement.removed(ProjectAsh.server, t.spawntype, t.species)
+                    Discord.announcement(
+                        eventType = "Despawned",
+                        server = ProjectAsh.server,
+                        spawnType = t.spawntype,
+                        species = t.species,
+                        speciesPlusForm = t.speciesForm
+                    )
+                }
+            }
+        }, 3, java.util.concurrent.TimeUnit.SECONDS)
     }
 
     // ---- helpers ----
