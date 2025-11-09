@@ -117,7 +117,7 @@ object Discord {
 
                     val embed = Embed(
                         title = title,
-                        color = if (shiny) 0xF1C40F else 0x2ECC71,
+                        color = getEmbedColour(spawnType),
                         fields = fields,
                         thumbnail = if (Thumbnails && spriteUrl != null)
                             mapOf("url" to spriteUrl)
@@ -175,7 +175,7 @@ object Discord {
 
                     val embed = Embed(
                         title = title,
-                        color = if (shiny) 0xF1C40F else 0x2ECC71,
+                        color = getEmbedColour(spawnType),
                         fields = fields,
                         thumbnail = if (eventType == "Captured" && Thumbnails && spriteUrl != null)
                         {mapOf("url" to spriteUrl)}
@@ -196,6 +196,40 @@ object Discord {
             } catch (t: Throwable) {
                 logger.info("Project Ash: Discord send() error: ${t.message}")
             }
+        }
+    }
+
+    private val EMBED_COLOURS = mapOf(
+        "shiny" to 0xF1C40F,
+        "ultra_beast" to 0xE74C3C,
+        "mythical" to 0x9B59B6,
+        "legendary" to 0x2ECC71,
+        "paradox" to 0x95A5A6,
+        "special" to 0xE67E22
+    )
+
+    fun blendColours(colourA: Int, colourB: Int): Int {
+        val r = ((colourA shr 16 and 0xFF) + (colourB shr 16 and 0xFF)) / 2
+        val g = ((colourA shr 8  and 0xFF) + (colourB shr 8  and 0xFF)) / 2
+        val b = ((colourA and 0xFF) + (colourB and 0xFF)) / 2
+        return (r shl 16) or (g shl 8) or b
+    }
+
+    fun getEmbedColour(types: List<String>): Int {
+        val normalised = types.map { it.lowercase() }
+
+        val priority = listOf("shiny", "ultra_beast", "mythical", "legendary", "paradox", "special")
+
+        // Collect colours in priority order
+        val colours = priority
+            .filter { it in normalised }
+            .mapNotNull { EMBED_COLOURS[it] }
+
+        return when {
+            colours.isEmpty() -> 0x3498DB // fallback: bright cobblemon-blue
+            colours.size == 1 -> colours.first()
+            colours.size >= 2 -> blendColours(colours[0], colours[1])
+            else -> 0x3498DB
         }
     }
 
@@ -277,6 +311,7 @@ object Discord {
             "mythical"    to "Mythical",
             "ultra_beast" to "Ultra Beast",
             "paradox"     to "Paradox",
+            "special"     to "Special",
             "projectash"  to "Project Ash"
         )
 

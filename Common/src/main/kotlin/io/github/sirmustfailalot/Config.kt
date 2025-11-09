@@ -11,7 +11,6 @@ import java.io.File
 // ── Types ─────────────────────────────────────────────────────────────────────
 data class SpecialRule(
     var speciesName: String = "shuckle",
-    var speciesForm: String = "kantonian",
     var shinyCheck: Boolean = false
 )
 
@@ -31,7 +30,7 @@ data class ServerRule(
 )
 
 data class PlayerRule(
-    var enabled: Boolean = false,
+    var enabled: Boolean = true,
     var specialCheck: MutableList<SpecialRule> = mutableListOf()
 )
 
@@ -102,6 +101,111 @@ object Config {
     }
 
     fun getLabelCheck(): List<String> = data.server.labelCheck
+
+    fun addServerSpecialRule(species: String, shinyOnly: Boolean): Boolean {
+        val rule = canonicalRule(species, shinyOnly)
+        // no-op if already present
+        if (Config.data.server.specialCheck.any { it == rule }) return false
+
+        write {
+            val next = it.server.specialCheck.toMutableList()
+            next.add(rule)
+            it.server.specialCheck = next
+        }
+        return true
+    }
+
+    fun removeServerSpecialRule(species: String, shinyOnly: Boolean): Boolean {
+        val rule = canonicalRule(species, shinyOnly)
+        if (!Config.data.server.specialCheck.contains(rule)) return false
+
+        write {
+            val next = it.server.specialCheck.toMutableList()
+            next.remove(rule)
+            it.server.specialCheck = next
+        }
+        return true
+    }
+
+    fun getServerSpecialRules(): List<SpecialRule> = Config.data.server.specialCheck
+
+    fun clearServerSpecialRules(): Boolean {
+        if (data.server.specialCheck.isEmpty()) return false
+        write { it.server.specialCheck = emptyList() }   // keep server list immutable
+        return true
+    }
+
+    fun ensurePlayer(name: String): PlayerRule {
+        val trimmed = name.trim()
+        var playerRule = Config.data.player[trimmed]
+
+        if (playerRule == null) {
+            // create a default entry if missing
+            playerRule = PlayerRule()
+            write {
+                it.player[trimmed] = playerRule
+            }
+        }
+
+        return playerRule
+    }
+
+    fun addPlayerSpecialRule(playerName: String, species: String, shinyOnly: Boolean): Boolean {
+        val p = ensurePlayer(playerName)
+        val rule = canonicalRule(species, shinyOnly)
+        if (p.specialCheck.any { it == rule }) return false
+
+        write {
+            // ensurePlayer() already created it.data.player[playerName]
+            it.player[playerName]!!.specialCheck.add(rule)
+        }
+        return true
+    }
+
+    fun removePlayerSpecialRule(playerName: String, species: String, shinyOnly: Boolean): Boolean {
+        val p = ensurePlayer(playerName)
+        val rule = canonicalRule(species, shinyOnly)
+        if (!p.specialCheck.contains(rule)) return false
+
+        write {
+            it.player[playerName]!!.specialCheck.remove(rule)
+        }
+        return true
+    }
+
+    fun getPlayerSpecialRules(playerName: String): List<SpecialRule> =
+        (Config.data.player[playerName] ?: PlayerRule()).specialCheck
+
+    fun setPlayerSpecialCheck(name: String, enabled: Boolean) = write {
+        val trimmed = name.trim()
+
+        // Ensure player entry exists (like ensurePlayer, but inline here)
+        val playerRule = it.player.getOrPut(trimmed) { PlayerRule() }
+
+        // Update enabled flag
+        playerRule.enabled = enabled
+    }
+
+    /** Clear ALL Special rules for a specific player. Ensures the player exists. */
+    fun clearPlayerSpecialRules(name: String): Boolean {
+        val key = name.trim()
+        val currentSize = data.player[key]?.specialCheck?.size ?: 0
+        if (currentSize == 0) return false
+
+        write {
+            val p = it.player.getOrPut(key) { PlayerRule() }
+            p.specialCheck.clear()                        // player list is mutable
+        }
+        return true
+    }
+
+    /** Make a canonical rule for reliable equality/contains/remove operations. */
+    private fun norm(s: String) = s.trim().lowercase()
+    private fun canonicalRule(species: String, shinyOnly: Boolean) =
+        SpecialRule(
+            speciesName = norm(species),
+            shinyCheck = shinyOnly
+        )
 
     // ── Internals ─────────────────────────────────────────────────────────────
     private fun saveLocked() {

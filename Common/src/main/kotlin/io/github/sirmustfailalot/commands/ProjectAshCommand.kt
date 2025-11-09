@@ -13,11 +13,12 @@ object ProjectAshCommand {
         ServerDiscordThumbnails,
         ServerInGameEnabled,
         ServerShinyChecks,
-        ServerLabelChecks
+        ServerLabelChecks,
+        ServerSpecialChecks
     )
 
     private val playerSubs: List<PAPlayerSubcommand> = listOf(
-        // e.g., PlayerSettingExampleSubcommand,
+        PlayerSpecialChecks
     )
 
     fun register(dispatcher: CommandDispatcher<CommandSourceStack>) {

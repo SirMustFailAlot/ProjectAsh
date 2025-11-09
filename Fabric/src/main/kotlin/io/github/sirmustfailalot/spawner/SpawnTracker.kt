@@ -119,6 +119,7 @@ object SpawnTracker {
             else -> listOf("DO NOT TRACK")
         }
 
+        // SERVER - Labels and Shiny Check
         if (shinyRule || spawnType.firstOrNull() != "DO NOT TRACK") {
             return spawnResult(
                 announceType= "Server",
@@ -129,6 +130,44 @@ object SpawnTracker {
                 closestPlayer = playerName,
                 shiny = shiny,
                 spawnType = spawnType,
+                species = species,
+                speciesPlusForm = speciesPlusForm
+            )
+        }
+
+        // SERVER - Special Checks
+        val hasServerSpecialMatch = Config.data.server.specialCheck.any {
+            it.speciesName.equals(species, ignoreCase = true) &&
+                    (!it.shinyCheck || shiny)
+        }
+
+        if (hasServerSpecialMatch) {
+            return spawnResult(
+                announceType = "Server",
+                announcePlayers = listOf(""), // or omit if not used for server
+                pokemonUuid = pokeUuid,
+                dimension = dimension,
+                pos = posValue,
+                closestPlayer = playerName,
+                shiny = shiny,
+                spawnType = listOf("special"),
+                species = species,
+                speciesPlusForm = speciesPlusForm
+            )
+        }
+
+        // PLAYERS - Special Checks
+        val matchedPlayers = findPlayersForSpecial(species, shiny)
+        if (matchedPlayers.isNotEmpty()) {
+            return spawnResult(
+                announceType = "Players",
+                announcePlayers = matchedPlayers,
+                pokemonUuid = pokeUuid,
+                dimension = dimension,
+                pos = posValue,
+                closestPlayer = playerName,
+                shiny = shiny,
+                spawnType = listOf("special"),
                 species = species,
                 speciesPlusForm = speciesPlusForm
             )
@@ -165,8 +204,10 @@ object SpawnTracker {
         )
 
         if (spawnCheck.announceType == "Server") {
-        Announcement.spawn(server = ProjectAsh.server, dimension = spawnCheck.dimension, playerName = spawnCheck.closestPlayer, spawnType = spawnCheck.spawnType, species = spawnCheck.speciesPlusForm, posValue = spawnCheck.pos)
+        Announcement.spawn(announceType = spawnCheck.announceType, announcePlayers = spawnCheck.announcePlayers, server = ProjectAsh.server, dimension = spawnCheck.dimension, playerName = spawnCheck.closestPlayer, spawnType = spawnCheck.spawnType, species = spawnCheck.speciesPlusForm, posValue = spawnCheck.pos)
         Discord.spawn(ProjectAsh.server, dimension = spawnCheck.dimension, playerName = spawnCheck.closestPlayer, spawnType = spawnCheck.spawnType, shiny = spawnCheck.shiny , species = spawnCheck.species, speciesPlusForm = spawnCheck.speciesPlusForm, posValue = spawnCheck.pos)
+        } else if (spawnCheck.announceType == "Players") {
+            Announcement.spawn(announceType = spawnCheck.announceType, announcePlayers = spawnCheck.announcePlayers, server = ProjectAsh.server, dimension = spawnCheck.dimension, playerName = spawnCheck.closestPlayer, spawnType = spawnCheck.spawnType, species = spawnCheck.speciesPlusForm, posValue = spawnCheck.pos)
         }
     }
 
@@ -174,14 +215,22 @@ object SpawnTracker {
     fun onCapture(player: ServerPlayer, pokemon: Pokemon) {
         val t = findTracked(pokemon.uuid) ?: return
         tracked.remove(pokemon.uuid)
-        Announcement.capture(ProjectAsh.server, player.gameProfile.name, t.spawntype, t.species)
-        Discord.announcement(eventType="Captured", server=ProjectAsh.server, playerName=player.gameProfile.name, spawnType=t.spawntype, species=t.species, speciesPlusForm=t.speciesForm)
+        if (t.announceType == "Server") {
+            Announcement.capture(announceType = t.announceType, announcePlayers = t.announcePlayers, ProjectAsh.server, player.gameProfile.name, t.spawntype, t.species)
+            Discord.announcement(eventType="Captured", server=ProjectAsh.server, playerName=player.gameProfile.name, spawnType=t.spawntype, species=t.species, speciesPlusForm=t.speciesForm)
+        } else if (t.announceType == "Players") {
+            Announcement.capture(announceType = t.announceType, announcePlayers = t.announcePlayers, ProjectAsh.server, player.gameProfile.name, t.spawntype, t.species)
+        }
     }
     fun onFainted(capture: PokemonFaintedEvent) {
         val t = findTracked(capture.pokemon.uuid) ?: return
         tracked.remove(capture.pokemon.uuid)
-        Announcement.fainted(ProjectAsh.server, t.spawntype, t.species)
-        Discord.announcement(eventType="Fainted", server=ProjectAsh.server, spawnType=t.spawntype, species=t.species, speciesPlusForm=t.speciesForm)
+        if (t.announceType == "Server") {
+            Announcement.fainted(announceType = t.announceType, announcePlayers = t.announcePlayers, ProjectAsh.server, t.spawntype, t.species)
+            Discord.announcement(eventType="Fainted", server=ProjectAsh.server, spawnType=t.spawntype, species=t.species, speciesPlusForm=t.speciesForm)
+        } else if (t.announceType == "Players") {
+            Announcement.fainted(announceType = t.announceType, announcePlayers = t.announcePlayers, ProjectAsh.server, t.spawntype, t.species)
+        }
     }
     fun onRemoved(entity: PokemonEntity, removalReason: Entity.RemovalReason?) {
         val pokeUuid = entity.pokemon.uuid
@@ -192,15 +241,18 @@ object SpawnTracker {
 
                 if (t.outcome == null) {
                     tracked.remove(pokeUuid)
-
-                    Announcement.removed(ProjectAsh.server, t.spawntype, t.species)
-                    Discord.announcement(
-                        eventType = "Despawned",
-                        server = ProjectAsh.server,
-                        spawnType = t.spawntype,
-                        species = t.species,
-                        speciesPlusForm = t.speciesForm
-                    )
+                    if (t.announceType == "Server") {
+                        Announcement.removed(announceType = t.announceType, announcePlayers = t.announcePlayers, ProjectAsh.server, t.spawntype, t.species)
+                        Discord.announcement(
+                            eventType = "Despawned",
+                            server = ProjectAsh.server,
+                            spawnType = t.spawntype,
+                            species = t.species,
+                            speciesPlusForm = t.speciesForm
+                        )
+                    } else if (t.announceType == "Players") {
+                        Announcement.removed(announceType = t.announceType, announcePlayers = t.announcePlayers, ProjectAsh.server, t.spawntype, t.species)
+                    }
                 }
             }
         }, 3, java.util.concurrent.TimeUnit.SECONDS)
@@ -209,5 +261,23 @@ object SpawnTracker {
     // ---- helpers ----
     private fun findTracked(pokemonUuid: UUID): Tracked? {
         return tracked[pokemonUuid]?.takeIf { it.outcome == null }
+    }
+
+    /** Return the list of player names whose Special rules match this spawn. */
+    fun findPlayersForSpecial(species: String, shiny: Boolean): List<String> {
+        val s = species.trim().lowercase()
+        return Config.data.player.entries
+            .asSequence()
+            // Optional: only consider players who have enabled their rules
+            .filter { (_, p) -> p.enabled }
+            // Match if any rule hits: same species, and shinyOnly implies shiny
+            .filter { (_, p) ->
+                p.specialCheck.any { rule ->
+                    rule.speciesName.equals(s, ignoreCase = true) &&
+                            (!rule.shinyCheck || shiny)
+                }
+            }
+            .map { (name, _) -> name }
+            .toList()
     }
 }
