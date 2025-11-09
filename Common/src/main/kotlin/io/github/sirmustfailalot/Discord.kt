@@ -93,10 +93,10 @@ object Discord {
     ) {
         io.execute {
             try {
-                val webhookEnabled = Config.data.discord.enabled
-                val Thumbnails = Config.data.discord.thumbnails
+                val webhookEnabled = Config.data.server.discordEnabled
+                val Thumbnails = Config.data.server.discordThumbnails
                 if (webhookEnabled) {
-                    val webhook = Config.data.discord.webhook
+                    val webhook = Config.data.server.discordWebhook
                     if (webhook.isNullOrBlank() || webhook == "https://your.webhook.url/here") {
                         Announcement.discordWebhookFail(server)
                         return@execute
@@ -146,10 +146,10 @@ object Discord {
     ) {
         io.execute {
             try {
-                val webhookEnabled = Config.data.discord.enabled
-                val Thumbnails = Config.data.discord.thumbnails
+                val webhookEnabled = Config.data.server.discordEnabled
+                val Thumbnails = Config.data.server.discordThumbnails
                 if (webhookEnabled) {
-                    val webhook = Config.data.discord.webhook
+                    val webhook = Config.data.server.discordWebhook
                     if (webhook.isNullOrBlank() || webhook == "https://your.webhook.url/here") {
                         Announcement.discordWebhookFail(server)
                         return@execute
@@ -270,19 +270,31 @@ object Discord {
     fun labelsToSpawnTypeString(labels: List<String>): String {
         if (labels.isEmpty()) return ""
 
-        // Normalize and unique them
-        val normalized = labels
-            .map { it.trim() }
-            .filter { it.isNotEmpty() }
-            .distinctBy { it.lowercase() }
+        // Inline map of known label definitions
+        val LABELS = mapOf(
+            "shiny"       to "Shiny",
+            "legendary"   to "Legendary",
+            "mythical"    to "Mythical",
+            "ultra_beast" to "Ultra Beast",
+            "paradox"     to "Paradox",
+            "projectash"  to "Project Ash"
+        )
 
-        // Ensure "Shiny" is first if it exists (case-insensitive)
+        // Normalise and deduplicate (case-insensitive)
+        val normalized = labels
+            .mapNotNull { raw ->
+                val key = raw.trim().lowercase()
+                if (key.isEmpty()) return@mapNotNull null
+                LABELS[key] ?: key.replaceFirstChar { it.uppercase() }
+            }
+            .distinct()
+
+        // Ensure “Shiny” appears first if present
         val shinyFirst = normalized.sortedWith(compareByDescending<String> {
-            it.equals("shiny", ignoreCase = true)
+            it.equals("Shiny", ignoreCase = true)
         })
 
-        // Combine with spaces
+        // Combine nicely for display
         return shinyFirst.joinToString(" ")
     }
-
 }

@@ -6,21 +6,21 @@ import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands.literal
 import net.minecraft.network.chat.Component
 
-object DiscordEnabled : PASubcommand {
+object ServerDiscordEnabled : PAServerSubcommand {
     override fun build(): LiteralArgumentBuilder<CommandSourceStack> =
+        // usage: /projectash server DiscordEnabled <boolean>
         literal("DiscordEnabled")
-            .requires { it.hasPermission(3) } // OPs only
             .then(literal("enabled")
                 .executes { ctx ->
-                    Config.setDiscordEnabled(true)
-                    ctx.source.sendSuccess({ Component.literal("Discord announcements: ENABLED") }, true)
+                    Config.setServerDiscordEnabled(true)
+                    ctx.source.sendSuccess({ Component.literal("[Project Ash] Discord announcements: ENABLED") }, true)
                     1
                 }
             )
             .then(literal("disabled")
                 .executes { ctx ->
-                    Config.setDiscordEnabled(false)
-                    ctx.source.sendSuccess({ Component.literal("Discord announcements: DISABLED") }, true)
+                    Config.setServerDiscordEnabled(false)
+                    ctx.source.sendSuccess({ Component.literal("[Project Ash] Discord announcements: DISABLED") }, true)
                     1
                 }
             )

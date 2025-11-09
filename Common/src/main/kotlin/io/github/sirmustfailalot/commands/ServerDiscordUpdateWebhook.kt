@@ -10,35 +10,30 @@ import net.minecraft.commands.Commands.literal
 import net.minecraft.network.chat.Component
 import java.net.URI
 
-object DiscordUpdateWebook : PASubcommand {
+object ServerDiscordUpdateWebhook : PAServerSubcommand {
     override fun build(): LiteralArgumentBuilder<CommandSourceStack> =
-        literal("DiscordWebhookUpdate")
-            .requires { it.hasPermission(3) } // OPs only
+        // usage: /projectash server updateWebhook <url>
+        literal("DiscordWebhook")
             .then(
                 argument("url", StringArgumentType.greedyString())
                     .executes { ctx ->
                         val url = StringArgumentType.getString(ctx, "url").trim()
-                        // validate the URL
                         validateUrl(url)?.let { throw it.create() }
-
-                        Config.setDiscordWebhook(url)
-
+                        Config.setServerDiscordWebhook(url)
                         ctx.source.sendSuccess(
-                            { Component.literal("Discord Webhook URL updated to: $url") },
+                            { Component.literal("[Project Ash] Discord webhook updated.") },
                             true
                         )
                         1
                     }
             )
 
-    // Simple URL validator
-    private fun validateUrl(url: String): SimpleCommandExceptionType? {
-        return try {
+    private fun validateUrl(url: String): SimpleCommandExceptionType? =
+        try {
             val u = URI(url)
-            val valid = (u.scheme == "http" || u.scheme == "https") && !u.host.isNullOrBlank()
-            if (valid) null else SimpleCommandExceptionType(Component.literal("Invalid URL: $url"))
+            val ok = (u.scheme == "http" || u.scheme == "https") && !u.host.isNullOrBlank()
+            if (ok) null else SimpleCommandExceptionType(Component.literal("[Project Ash] Invalid URL: $url"))
         } catch (_: Exception) {
-            SimpleCommandExceptionType(Component.literal("Invalid URL: $url"))
+            SimpleCommandExceptionType(Component.literal("[Project Ash] Invalid URL: $url"))
         }
-    }
 }

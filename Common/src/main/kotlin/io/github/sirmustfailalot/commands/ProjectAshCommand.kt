@@ -5,18 +5,35 @@ import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands.literal
 
 object ProjectAshCommand {
-    // Add subcommands here
-    private val subs: List<PASubcommand> = listOf(
-        DiscordUpdateWebook,
-        DiscordEnabled,
-        DiscordThumbnails,
-        InGameEnabled
-        // Add more…
+
+    // Register your server and player subcommands here:
+    private val serverSubs: List<PAServerSubcommand> = listOf(
+        ServerDiscordEnabled,
+        ServerDiscordUpdateWebhook,
+        ServerDiscordThumbnails,
+        ServerInGameEnabled,
+        ServerShinyChecks,
+        ServerLabelChecks
+    )
+
+    private val playerSubs: List<PAPlayerSubcommand> = listOf(
+        // e.g., PlayerSettingExampleSubcommand,
     )
 
     fun register(dispatcher: CommandDispatcher<CommandSourceStack>) {
-        val root = literal("projectash")
-        subs.forEach { sub -> root.then(sub.build()) }
+        val root = literal("ProjectAsh")
+
+        // /projectash server ...
+        val serverRoot = literal("Server")
+            .requires { it.hasPermission(3) } // lock server settings to ops
+        serverSubs.forEach { sub -> serverRoot.then(sub.build()) }
+        root.then(serverRoot)
+
+        // /projectash player ...
+        val playerRoot = literal("Player")
+        playerSubs.forEach { sub -> playerRoot.then(sub.build()) }
+        root.then(playerRoot)
+
         dispatcher.register(root)
     }
 }

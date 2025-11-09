@@ -16,7 +16,9 @@ data class LabelDef(
 private val LABELS: Map<String, LabelDef> = mapOf(
     "shiny"        to LabelDef(display = "Shiny",       color = 0xF1C40F),
     "legendary"    to LabelDef(display = "Legendary",   color = 0x2ECC71),
-    "ultra-beast"  to LabelDef(display = "Ultra-Beast", color = 0x3498DB),
+    "mythical"  to LabelDef(display = "Mythical", color = 0x2ECC71),
+    "ultra_beast"  to LabelDef(display = "Ultra Beast", color = 0x3498DB),
+    "paradox"  to LabelDef(display = "Paradox", color = 0xFFFFFF),
     "projectash"  to LabelDef(display = "Project Ash", color = 0x0D1C6F)
 )
 
@@ -37,7 +39,7 @@ object Announcement {
     private val logger = LoggerFactory.getLogger("ProjectAsh")
 
     fun spawn(server: MinecraftServer?, dimension: String, playerName: String?, spawnType: List<String>, species: String, posValue: String) {
-        val ingameEnabled = Config.data.in_game.enabled
+        val ingameEnabled = Config.data.server.ingameEnabled
         if (ingameEnabled) {
             val message = if (dimension == "Overworld") {
                 renderLabeledMessage(
@@ -58,7 +60,7 @@ object Announcement {
     }
 
     fun capture(server: MinecraftServer?, playerName: String?, spawnType: List<String>, species: String) {
-        val ingameEnabled = Config.data.in_game.enabled
+        val ingameEnabled = Config.data.server.ingameEnabled
         if (ingameEnabled) {
             val message = renderLabeledMessage(
                 labelsInOrder = spawnType,
@@ -73,7 +75,7 @@ object Announcement {
     }
 
     fun fainted(server: MinecraftServer?, spawnType: List<String>, species: String) {
-        val ingameEnabled = Config.data.in_game.enabled
+        val ingameEnabled = Config.data.server.ingameEnabled
         if (ingameEnabled) {
             val message = renderLabeledMessage(
                 labelsInOrder = spawnType,
@@ -88,7 +90,7 @@ object Announcement {
     }
 
     fun removed(server: MinecraftServer?, spawnType: List<String>, species: String) {
-        val ingameEnabled = Config.data.in_game.enabled
+        val ingameEnabled = Config.data.server.ingameEnabled
         if (ingameEnabled) {
             val message = renderLabeledMessage(
                 labelsInOrder = spawnType,

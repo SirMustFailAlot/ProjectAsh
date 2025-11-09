@@ -6,21 +6,21 @@ import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands.literal
 import net.minecraft.network.chat.Component
 
-object DiscordThumbnails : PASubcommand {
+object ServerShinyChecks : PAServerSubcommand {
     override fun build(): LiteralArgumentBuilder<CommandSourceStack> =
-        literal("DiscordThumbnails")
-            .requires { it.hasPermission(3) } // OPs only
+        // usage: /projectash server Shiny <boolean>
+        literal("Shiny")
             .then(literal("enabled")
                 .executes { ctx ->
-                    Config.setDiscordThumbnails(true)
-                    ctx.source.sendSuccess({ Component.literal("Discord thumbnails: ENABLED") }, true)
+                    Config.setServerShinyCheck(true)
+                    ctx.source.sendSuccess({ Component.literal("[Project Ash] Server Shiny Checks: ENABLED") }, true)
                     1
                 }
             )
             .then(literal("disabled")
                 .executes { ctx ->
-                    Config.setDiscordThumbnails(false)
-                    ctx.source.sendSuccess({ Component.literal("Discord thumbnails: DISABLED") }, true)
+                    Config.setServerShinyCheck(false)
+                    ctx.source.sendSuccess({ Component.literal("[Project Ash] Server Shiny Checks: DISABLED") }, true)
                     1
                 }
             )

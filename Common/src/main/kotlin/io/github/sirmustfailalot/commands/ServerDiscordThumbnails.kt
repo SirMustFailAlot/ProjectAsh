@@ -6,21 +6,21 @@ import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands.literal
 import net.minecraft.network.chat.Component
 
-object InGameEnabled : PASubcommand {
+object ServerDiscordThumbnails : PAServerSubcommand {
     override fun build(): LiteralArgumentBuilder<CommandSourceStack> =
-        literal("InGameEnabled")
-            .requires { it.hasPermission(3) } // OPs only
+        // usage: /projectash server DiscordThumbnails <boolean>
+        literal("DiscordThumbnails")
             .then(literal("enabled")
                 .executes { ctx ->
-                    Config.setIngameEnabled(true)
-                    ctx.source.sendSuccess({ Component.literal("In-game announcements: ENABLED") }, true)
+                    Config.setServerDiscordThumbnails(true)
+                    ctx.source.sendSuccess({ Component.literal("[Project Ash] Discord thumbnails: ENABLED") }, true)
                     1
                 }
             )
             .then(literal("disabled")
                 .executes { ctx ->
-                    Config.setIngameEnabled(false)
-                    ctx.source.sendSuccess({ Component.literal("In-game announcements: DISABLED") }, true)
+                    Config.setServerDiscordThumbnails(false)
+                    ctx.source.sendSuccess({ Component.literal("[Project Ash] Discord thumbnails: DISABLED") }, true)
                     1
                 }
             )

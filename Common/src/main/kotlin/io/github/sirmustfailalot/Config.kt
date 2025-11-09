@@ -9,16 +9,10 @@ import org.slf4j.LoggerFactory
 import java.io.File
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-data class DiscordConfig(
-    var enabled: Boolean = true,
-    var webhook: String = "https://your.webhook.url/here",
-    var thumbnails: Boolean = true
-)
-
-data class InGameConfig(
-    var enabled: Boolean = true,
-    var broadcast_login: Boolean = false,
-    var broadcast_logout: Boolean = false
+data class SpecialRule(
+    var speciesName: String = "shuckle",
+    var speciesForm: String = "kantonian",
+    var shinyCheck: Boolean = false
 )
 
 data class SpriteEntry(
@@ -26,16 +20,24 @@ data class SpriteEntry(
     var shiny: String = ""
 )
 
-/** Per-player rule: enabled + allowed species list */
+data class ServerRule(
+    var ingameEnabled: Boolean = true,
+    var discordEnabled: Boolean = true,
+    var discordWebhook: String = "https://your.webhook.url/here",
+    var discordThumbnails: Boolean = true,
+    var shinyCheck: Boolean = true,
+    var labelCheck: List<String> = listOf("legendary", "ultra_beast", "mythical", "paradox"),
+    var specialCheck: List<SpecialRule> = emptyList()
+)
+
 data class PlayerRule(
     var enabled: Boolean = false,
-    var species: MutableList<String> = mutableListOf()
+    var specialCheck: MutableList<SpecialRule> = mutableListOf()
 )
 
 data class ConfigData(
-    var discord: DiscordConfig = DiscordConfig(),
-    var in_game: InGameConfig = InGameConfig(),
-    var player: MutableMap<String, PlayerRule> = mutableMapOf(),           // 👈 now a map
+    var server: ServerRule = ServerRule(),
+    var player: MutableMap<String, PlayerRule> = mutableMapOf(),
     var sprites: MutableMap<String, SpriteEntry> = mutableMapOf()
 )
 
@@ -49,7 +51,7 @@ object Config {
     var data: ConfigData = ConfigData()
         private set
 
-    /** Call once at startup. Creates defaults (incl. sprites from resource) if missing. */
+    // Initialise and Create
     fun init() {
         if (!file.exists()) {
             file.parentFile.mkdirs()
@@ -62,18 +64,57 @@ object Config {
         }
     }
 
-    /** Atomically modify & auto-save. */
+    // ── Helper Functions ──────────────────────────────────────────────────────
+    // Server Variables
+    fun setServerIngameEnabled(enabled: Boolean) = write { it.server.ingameEnabled = enabled }
+    fun setServerDiscordEnabled(enabled: Boolean) = write { it.server.discordEnabled = enabled }
+    fun setServerDiscordWebhook(url: String) = write { it.server.discordWebhook = url }
+    fun setServerDiscordThumbnails(enabled: Boolean) = write { it.server.discordThumbnails = enabled }
+    fun setServerShinyCheck(enabled: Boolean) = write { it.server.shinyCheck = enabled }
+
+    fun addLabelCheck(label: String): Boolean {
+        val normalised = label.trim().lowercase()
+        if (normalised.isEmpty()) return false
+
+        // Only modify if not already there
+        if (data.server.labelCheck.contains(normalised)) return false
+
+        write {
+            val current = it.server.labelCheck.toMutableList()
+            current.add(normalised)
+            it.server.labelCheck = current
+        }
+        return true
+    }
+
+    fun removeLabelCheck(label: String): Boolean {
+        val normalised = label.trim().lowercase()
+        if (normalised.isEmpty()) return false
+
+        if (!data.server.labelCheck.contains(normalised)) return false
+
+        write {
+            val current = it.server.labelCheck.toMutableList()
+            current.remove(normalised)
+            it.server.labelCheck = current
+        }
+        return true
+    }
+
+    fun getLabelCheck(): List<String> = data.server.labelCheck
+
+    // ── Internals ─────────────────────────────────────────────────────────────
+    private fun saveLocked() {
+        runCatching { file.writeText(gson.toJson(data)) }
+            .onFailure { e -> logger.info("Project Ash: failed to save config: ${e.message}") }
+    }
     @Synchronized
     fun write(modify: (ConfigData) -> Unit) {
         modify(data)
         saveLocked()
     }
-
-    /** Save current in-memory config. */
     @Synchronized
     fun save() = saveLocked()
-
-    /** Reload from disk (no backfill). */
     @Synchronized
     fun reload() {
         val text = runCatching { file.readText() }.getOrElse {
@@ -85,69 +126,6 @@ object Config {
                 logger.info("Project Ash: failed to parse config; using defaults: ${it.message}")
                 ConfigData()
             }
-    }
-
-    /** Optional: reset to defaults and reapply resource sprites. */
-    @Synchronized
-    fun resetToDefaults() {
-        data = ConfigData()
-        val defaults = loadSpritesFromResource()
-        if (defaults.isNotEmpty()) data.sprites.putAll(defaults)
-        saveLocked()
-    }
-
-    // ── Convenience helpers ────────────────────────────────────────
-    fun setDiscordWebhook(url: String) = write { it.discord.webhook = url }
-    fun setDiscordEnabled(enabled: Boolean) = write { it.discord.enabled = enabled }
-    fun setDiscordThumbnails(enabled: Boolean) = write { it.discord.thumbnails = enabled }
-
-    fun setIngameEnabled(enabled: Boolean) = write { it.in_game.enabled = enabled }
-
-    /** Ensure a player record exists and return it (in-memory). */
-    fun ensurePlayer(name: String): PlayerRule {
-        var rule = data.player[name]
-        if (rule == null) {
-            rule = PlayerRule()
-            data.player[name] = rule
-            save() // persist new player entry
-        }
-        return rule
-    }
-
-    fun setPlayerEnabled(name: String, enabled: Boolean) = write {
-        val rule = it.player.getOrPut(name) { PlayerRule() }
-        rule.enabled = enabled
-    }
-
-    fun setPlayerSpecies(name: String, speciesList: List<String>) = write {
-        val rule = it.player.getOrPut(name) { PlayerRule() }
-        rule.species.clear()
-        rule.species.addAll(speciesList)
-    }
-
-    fun addPlayerSpecies(name: String, species: String) = write {
-        val rule = it.player.getOrPut(name) { PlayerRule() }
-        if (!rule.species.contains(species)) rule.species.add(species)
-    }
-
-    fun removePlayerSpecies(name: String, species: String) = write {
-        it.player[name]?.species?.remove(species)
-    }
-
-    fun clearPlayer(name: String) = write {
-        it.player.remove(name)
-    }
-
-    fun putSprite(species: String, standard: String? = null, shiny: String? = null) = write {
-        val entry = it.sprites.getOrPut(species) { SpriteEntry() }
-        standard?.let { s -> entry.standard = s }
-        shiny?.let { s -> entry.shiny = s }
-    }
-
-    // ── Internals ─────────────────────────────────────────────────────────────
-    private fun saveLocked() {
-        runCatching { file.writeText(gson.toJson(data)) }
-            .onFailure { e -> logger.info("Project Ash: failed to save config: ${e.message}") }
     }
 
     /** Load default sprites JSON from resources into a Map<String, SpriteEntry>. */

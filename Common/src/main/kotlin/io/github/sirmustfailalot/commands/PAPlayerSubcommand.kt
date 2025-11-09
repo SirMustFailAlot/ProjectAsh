@@ -3,7 +3,7 @@ package io.github.sirmustfailalot.projectash.commands
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
 import net.minecraft.commands.CommandSourceStack
 
-interface PASubcommand {
-    /** Return the literal node to hang under /projectash */
+/** Returns the node that hangs under: /projectash player <here> */
+interface PAPlayerSubcommand {
     fun build(): LiteralArgumentBuilder<CommandSourceStack>
 }

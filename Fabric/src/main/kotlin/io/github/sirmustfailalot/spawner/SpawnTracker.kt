@@ -11,13 +11,18 @@ import com.cobblemon.mod.common.entity.pokemon.PokemonEntity
 import com.cobblemon.mod.common.pokemon.Pokemon
 import com.cobblemon.mod.common.util.toVec3d
 import io.github.sirmustfailalot.Announcement
+import io.github.sirmustfailalot.Config
 import io.github.sirmustfailalot.Discord
 import io.github.sirmustfailalot.ProjectAsh
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.level.Level
 import org.slf4j.LoggerFactory
+import java.awt.Dimension
 import java.util.Locale
+import kotlin.String
+import kotlin.collections.contains
+import kotlin.toString
 
 object SpawnTracker {
     private val logger = LoggerFactory.getLogger("project-ash")
@@ -25,6 +30,8 @@ object SpawnTracker {
     private val scheduler = java.util.concurrent.Executors.newScheduledThreadPool(1)
 
     data class Tracked(
+        val announceType: String,
+        val announcePlayers: List<String> = listOf(""),
         val pokemonUuid: UUID,
         val spawntype: List<String>,
         val species: String,
@@ -35,9 +42,21 @@ object SpawnTracker {
         val ref: WeakReference<PokemonEntity>
     )
 
+    data class spawnResult(
+        val announceType: String = "Do not announce",
+        val announcePlayers: List<String> = listOf(""),
+        val pokemonUuid: UUID,
+        val dimension: String = "",
+        val pos: String = "",
+        val closestPlayer: String = "",
+        val shiny: Boolean = false,
+        val spawnType: List<String> = listOf("Do not announce"),
+        val species: String = "",
+        val speciesPlusForm: String = ""
+    )
+
     enum class Outcome { CAUGHT, FAINTED, NATURAL_DESPAWN }
 
-    // Grab the server for announcing
     private fun ctxServerLevel(ctx: SpawningContext): ServerLevel? {
         // Try getLevel()
         try {
@@ -57,34 +76,24 @@ object SpawnTracker {
         }
     }
 
-    // ---- lifecycle hooks you wire up to events ----
-
-    fun onSpawn(spawn: SpawnEvent<PokemonEntity>) {
-        val pokeUuid = spawn.entity.pokemon.uuid
-        val world = ctxServerLevel(spawn.ctx) ?: return
-        val dimensionName = world.dimension().toString()
+    fun spawnCheckRule(context: SpawnEvent<PokemonEntity>): spawnResult? {
+        // Pokemon Stuff!
+        val pokeUuid = context.entity.pokemon.uuid
+        val world = ctxServerLevel(context.ctx) ?: return null
         val dimension = when {
             world.dimension().toString().contains("overworld") -> "Overworld"
             world.dimension().toString().contains("the_nether") -> "Nether"
             world.dimension().toString().contains("the_end") -> "End"
-            else -> return
+            else -> return null
         }
-        val pos = spawn.ctx.position
+        val pos = context.ctx.position
         val posValue = pos.x.toString() + ", " + pos.y.toString() + ", " + pos.z.toString()
-        val players = spawn.ctx.world.players()
+        val players = context.ctx.world.players()
             .filter { it.isAlive }
             .minByOrNull { it.position().distanceToSqr(pos.toVec3d()) } // Use player's position for distance calculation
         val playerName = players?.name?.string?:""
-        val pokemon = spawn.entity.pokemon
+        val pokemon = context.entity.pokemon
         val shiny = pokemon.shiny
-        val labelsWeWant = listOf("legendary")
-        val label = pokemon.form.labels.firstOrNull { it in labelsWeWant}
-        val spawnType = when {
-            shiny && label != null -> listOf("Shiny", "Legendary")
-            shiny && label == null -> listOf("Shiny")
-            !shiny && label != null -> listOf("Legendary")
-            else -> listOf("DO NOT TRACK")
-        }
         val species = pokemon.species.translatedName.string
         val formVariation: String? = pokemon.form.labels
             .asSequence()
@@ -98,39 +107,82 @@ object SpawnTracker {
             "$species ($formVariation)"
         }
 
-        tracked[pokeUuid] = Tracked(
+        // Server Check
+        val serverConfig = Config.data.server
+        var shinyRule = serverConfig.shinyCheck && shiny
+        val serverLabels = Config.data.server.labelCheck
+        val label = pokemon.form.labels.firstOrNull { it in serverLabels}
+        val spawnType = when {
+            shinyRule && label != null -> listOf("Shiny", label)
+            shinyRule && label == null -> listOf("Shiny")
+            !shinyRule && label != null -> listOf(label)
+            else -> listOf("DO NOT TRACK")
+        }
+
+        if (shinyRule || spawnType.firstOrNull() != "DO NOT TRACK") {
+            return spawnResult(
+                announceType= "Server",
+                announcePlayers = listOf(""),
+                pokemonUuid = pokeUuid,
+                dimension = dimension,
+                pos = posValue,
+                closestPlayer = playerName,
+                shiny = shiny,
+                spawnType = spawnType,
+                species = species,
+                speciesPlusForm = speciesPlusForm
+            )
+        }
+
+        return spawnResult(
+            announceType= "Do not announce",
+            announcePlayers = listOf(""),
             pokemonUuid = pokeUuid,
-            spawntype = spawnType,
-            closestplayer = playerName,
-            species = spawn.entity.pokemon.species.name,
-            speciesForm = speciesPlusForm,
+            dimension = "",
+            pos = "",
+            closestPlayer = "",
+            shiny = true,
+            spawnType = listOf(""),
+            species = "",
+            speciesPlusForm = ""
+        )
+    }
+
+    fun onSpawn(spawn: SpawnEvent<PokemonEntity>) {
+
+        val spawnCheck = spawnCheckRule(spawn)
+        if (spawnCheck?.announceType == "Do not announce" || spawnCheck == null) {return}
+
+        tracked[spawnCheck.pokemonUuid] = Tracked(
+            announceType = spawnCheck.announceType,
+            announcePlayers = spawnCheck.announcePlayers,
+            pokemonUuid = spawnCheck.pokemonUuid,
+            spawntype = spawnCheck.spawnType,
+            closestplayer = spawnCheck.closestPlayer,
+            species = spawnCheck.species,
+            speciesForm = spawnCheck.speciesPlusForm,
             ref = WeakReference(spawn.entity)
         )
 
-        if (spawnType.firstOrNull() == "DO NOT TRACK") {
-            tracked.remove(pokeUuid)
-        } else {
-            logger.info("Spawn: $pokeUuid - $spawnType - $species")
-            Announcement.spawn(ProjectAsh.server, dimension, playerName, spawnType, speciesPlusForm, posValue)
-            Discord.spawn(ProjectAsh.server, dimension, playerName, spawnType, shiny, species, speciesPlusForm, posValue)
+        if (spawnCheck.announceType == "Server") {
+        Announcement.spawn(server = ProjectAsh.server, dimension = spawnCheck.dimension, playerName = spawnCheck.closestPlayer, spawnType = spawnCheck.spawnType, species = spawnCheck.speciesPlusForm, posValue = spawnCheck.pos)
+        Discord.spawn(ProjectAsh.server, dimension = spawnCheck.dimension, playerName = spawnCheck.closestPlayer, spawnType = spawnCheck.spawnType, shiny = spawnCheck.shiny , species = spawnCheck.species, speciesPlusForm = spawnCheck.speciesPlusForm, posValue = spawnCheck.pos)
         }
     }
 
+    // ---- captures etc ----
     fun onCapture(player: ServerPlayer, pokemon: Pokemon) {
         val t = findTracked(pokemon.uuid) ?: return
         tracked.remove(pokemon.uuid)
-        Announcement.capture(ProjectAsh.server, t.closestplayer, t.spawntype, t.species)
+        Announcement.capture(ProjectAsh.server, player.gameProfile.name, t.spawntype, t.species)
         Discord.announcement(eventType="Captured", server=ProjectAsh.server, playerName=player.gameProfile.name, spawnType=t.spawntype, species=t.species, speciesPlusForm=t.speciesForm)
     }
-
     fun onFainted(capture: PokemonFaintedEvent) {
         val t = findTracked(capture.pokemon.uuid) ?: return
         tracked.remove(capture.pokemon.uuid)
         Announcement.fainted(ProjectAsh.server, t.spawntype, t.species)
         Discord.announcement(eventType="Fainted", server=ProjectAsh.server, spawnType=t.spawntype, species=t.species, speciesPlusForm=t.speciesForm)
     }
-
-
     fun onRemoved(entity: PokemonEntity, removalReason: Entity.RemovalReason?) {
         val pokeUuid = entity.pokemon.uuid
 
