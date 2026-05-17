@@ -14,6 +14,7 @@ data class LabelDef(
 )
 
 private val LABELS: Map<String, LabelDef> = mapOf(
+    "perfect"  to LabelDef(display = "Perfect", color = 0x3498DB),
     "shiny"        to LabelDef(display = "Shiny",       color = 0xF1C40F),
     "legendary"    to LabelDef(display = "Legendary",   color = 0x2ECC71),
     "mythical"  to LabelDef(display = "Mythical", color = 0x9B59B6),
@@ -21,7 +22,6 @@ private val LABELS: Map<String, LabelDef> = mapOf(
     "paradox"  to LabelDef(display = "Paradox", color = 0x95A5A6),
     "special"  to LabelDef(display = "Special", color = 0xE67E22),
     "projectash"  to LabelDef(display = "Project Ash", color = 0x1ABC9C),
-    "perfect"  to LabelDef(display = "Perfect", color = 0x3498DB),
 )
 
 private fun colored(text: String, rgb: Int, bold: Boolean = false): MutableComponent {
@@ -126,7 +126,7 @@ object Announcement {
     fun hatched( server: MinecraftServer?, hatchType: List<String>, species: String, playerName: String) {
         val message = renderLabeledMessage(
             labelsInOrder = hatchType,
-            messageTail = "$species has been hatched by !")
+            messageTail = "$species has been hatched by $playerName!")
 
         val ingameEnabled = Config.data.server.ingameEnabled
         if (ingameEnabled) {
@@ -166,7 +166,8 @@ object Announcement {
         messageTail: String,
         separator: String = " · "
     ): MutableComponent {
-        val parts = mutableListOf<MutableComponent>()
+        // Start with a literal empty component root to avoid mutating your actual labels
+        val root = Component.empty()
 
         // 1) Build colored label components
         val labelComps = labelsInOrder
@@ -174,20 +175,19 @@ object Announcement {
             .distinct()
             .mapNotNull { key -> LABELS[key]?.let { def -> colored(def.display, def.color, def.bold) } }
 
-        // 2) Add them with separators
+        // 2) Add them with separators directly to the root
         if (labelComps.isNotEmpty()) {
-            parts += labelComps.first()
+            root.append(labelComps.first())
             for (i in 1 until labelComps.size) {
-                parts += white(separator)
-                parts += labelComps[i]
+                root.append(white(separator))
+                root.append(labelComps[i])
             }
-            parts += white(" ") // space before main message
+            root.append(white(" ")) // space before main message
         }
 
-        // 3) Append the message tail (white)
-        parts += white(messageTail)
+        // 3) Append the message tail
+        root.append(white(messageTail))
 
-        // 4) Fold all components together
-        return parts.drop(1).fold(parts.first()) { acc, nxt -> acc.append(nxt) }
+        return root
     }
 }

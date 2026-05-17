@@ -9,15 +9,23 @@ import java.util.Locale
 import kotlin.String
 import kotlin.text.contains
 import org.slf4j.LoggerFactory
+import kotlin.jvm.optionals.getOrNull
 
 object HatchAnnounce {
     private val logger = LoggerFactory.getLogger("project-ash")
     fun onHatch(context: HatchEggEvent) {
-        val playerName = context.player.name?.string?:""
+        val cachedProfile = ProjectAsh.server?.profileCache?.get(context.player.uuid)?.getOrNull()
+        val playerName = cachedProfile?.name
+            ?: ProjectAsh.server?.playerList?.getPlayer(context.player.uuid)?.name?.string
+            ?: "Unknown Player"
         val species = context.egg.species.toString()
 
         val formVariation: String? = context.egg.form
-        logger.debug("Hatch Event Triggered Species: {} form: {}", species, formVariation)
+        val speciesPlusForm = if (formVariation.isNullOrBlank()) {
+            species.replaceFirstChar { firstChar -> firstChar.uppercase() }
+        } else {
+            "${species.replaceFirstChar { firstChar -> firstChar.uppercase() }} (${formVariation.replaceFirstChar { firstChar -> firstChar.uppercase() }})"
+        }
 
         val shiny = context.egg.shiny!!
         val ivs = context.egg.ivs!!
@@ -31,17 +39,17 @@ object HatchAnnounce {
         val ivList = listOf(hp, atk, def, spatk, spdef, speed)
         val perfectCount = ivList.count { it == 31 }
 
-        // Label Creation
+
         var labels = listOf("")
         if (perfectCount == 6 && shiny) {
-            labels = listOf("shiny", "perfect")
+            labels = listOf("perfect", "shiny")
         } else if (perfectCount == 6) {
             labels = listOf("perfect")
         } else if (shiny) {
             labels = listOf("shiny")
         }
 
-        Announcement.hatched(server = ProjectAsh.server, hatchType = labels, species = species, playerName = playerName)
-        Discord.announcement(eventType="Hatch", server=ProjectAsh.server, playerName=playerName, spawnType=labels, species=species, speciesPlusForm=species)
+        Announcement.hatched(server = ProjectAsh.server, hatchType = labels, species = speciesPlusForm, playerName = playerName)
+        Discord.announcement(eventType="Hatched", server=ProjectAsh.server, playerName=playerName, spawnType=labels, species=species, speciesPlusForm=speciesPlusForm)
     }
 }

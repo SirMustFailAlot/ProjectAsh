@@ -163,13 +163,24 @@ object Discord {
                         Config.data.sprites[normalisedSpecies]?.shiny
                     } else {
                         Config.data.sprites[normalisedSpecies]?.standard}
-                    val title = if (eventType == "Captured") {"✅ $eventType $speciesPlusForm!"} else {"❌ $speciesPlusForm $eventType!"}
+                    val title = if (eventType == "Captured") {
+                        "✅ $eventType $speciesPlusForm!"
+                    } else if (eventType == "Hatched") {
+                        "🐣 $speciesPlusForm $eventType!"
+                    } else {
+                        "❌ $speciesPlusForm $eventType!"
+                    }
                     val fields = if (eventType == "Captured")
                         {
                             listOf(
                                 EmbedField("Spawn Type", spawnTypeString),
                                 EmbedField("Player", playerName ?: "Unknown"))
-                        } else {
+                        } else if (eventType == "Hatched")
+                        {
+                        listOf(
+                            EmbedField("Hatch Type", spawnTypeString),
+                            EmbedField("Player", playerName ?: "Unknown"))
+                        }else {
                             listOf(
                                 EmbedField("Spawn Type", spawnTypeString))}
 
@@ -177,7 +188,7 @@ object Discord {
                         title = title,
                         color = getEmbedColour(spawnType),
                         fields = fields,
-                        thumbnail = if (eventType == "Captured" && Thumbnails && spriteUrl != null)
+                        thumbnail = if ((eventType == "Captured" || eventType == "Hatched") && Thumbnails && spriteUrl != null)
                         {mapOf("url" to spriteUrl)}
                         else {
                             if (eventType == "Fainted")
@@ -219,7 +230,7 @@ object Discord {
     fun getEmbedColour(types: List<String>): Int {
         val normalised = types.map { it.lowercase() }
 
-        val priority = listOf("shiny", "ultra_beast", "mythical", "legendary", "paradox", "special")
+        val priority = listOf("perfect", "shiny", "ultra_beast", "mythical", "legendary", "paradox", "special")
 
         // Collect colours in priority order
         val colours = priority
