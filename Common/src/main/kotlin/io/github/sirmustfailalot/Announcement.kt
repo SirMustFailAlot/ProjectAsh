@@ -20,7 +20,8 @@ private val LABELS: Map<String, LabelDef> = mapOf(
     "ultra_beast"  to LabelDef(display = "Ultra Beast", color = 0xE74C3C),
     "paradox"  to LabelDef(display = "Paradox", color = 0x95A5A6),
     "special"  to LabelDef(display = "Special", color = 0xE67E22),
-    "projectash"  to LabelDef(display = "Project Ash", color = 0x1ABC9C)
+    "projectash"  to LabelDef(display = "Project Ash", color = 0x1ABC9C),
+    "perfect"  to LabelDef(display = "Perfect", color = 0x3498DB),
 )
 
 private fun colored(text: String, rgb: Int, bold: Boolean = false): MutableComponent {
@@ -120,6 +121,22 @@ object Announcement {
         } else if (announceType == "Players") {
             if (server != null) sendMessageToPlayers(server, message, announcePlayers)
         }
+    }
+
+    fun hatched( server: MinecraftServer?, hatchType: List<String>, species: String, playerName: String) {
+        val message = renderLabeledMessage(
+            labelsInOrder = hatchType,
+            messageTail = "$species has been hatched by !")
+
+        val ingameEnabled = Config.data.server.ingameEnabled
+        if (ingameEnabled) {
+            server.let { server ->
+                server?.playerList?.players?.forEach { p ->
+                    p.sendSystemMessage(message)
+                }
+            }
+        }
+
     }
 
     fun sendMessageToPlayers(server: MinecraftServer, message: Component, names: List<String>) {

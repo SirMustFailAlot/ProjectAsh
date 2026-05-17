@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory
 import io.github.sirmustfailalot.projectash.commands.ProjectAshCommand
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
+import io.github.sirmustfailalot.hatching.HatchAnnounce
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.server.level.ServerPlayer
@@ -58,5 +59,7 @@ object ProjectAsh : ModInitializer {
                 SpawnTracker.onRemoved(entity, entity.removalReason)
             }
         }
+
+        CobblemonEvents.HATCH_EGG_POST.subscribe(Priority.LOWEST, HatchAnnounce::onHatch)
     }
 }

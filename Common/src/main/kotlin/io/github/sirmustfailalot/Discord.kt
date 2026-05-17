@@ -205,7 +205,8 @@ object Discord {
         "mythical" to 0x9B59B6,
         "legendary" to 0x2ECC71,
         "paradox" to 0x95A5A6,
-        "special" to 0xE67E22
+        "special" to 0xE67E22,
+        "perfect_iv" to 0x3498DB
     )
 
     fun blendColours(colourA: Int, colourB: Int): Int {
