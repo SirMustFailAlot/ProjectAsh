@@ -3,7 +3,6 @@ import com.cobblemon.mod.common.api.events.battles.BattleFaintedEvent
 import com.cobblemon.mod.common.api.events.entity.SpawnEvent
 import com.cobblemon.mod.common.api.events.pokemon.PokemonCapturedEvent
 import com.cobblemon.mod.common.api.events.pokemon.PokemonFaintedEvent
-import com.cobblemon.mod.common.api.spawning.context.SpawningContext
 import java.lang.ref.WeakReference
 import java.util.UUID
 import net.minecraft.world.entity.Entity
@@ -57,42 +56,24 @@ object SpawnTracker {
 
     enum class Outcome { CAUGHT, FAINTED, NATURAL_DESPAWN }
 
-    private fun ctxServerLevel(ctx: SpawningContext): ServerLevel? {
-        // Try getLevel()
-        try {
-            val m = ctx.javaClass.getMethod("getLevel")
-            when (val v = m.invoke(ctx)) {
-                is ServerLevel -> return v
-                is Level -> return v as? ServerLevel
-            }
-        } catch (_: NoSuchMethodException) { /* fall through */ }
-        // Fallback getWorld()
-        return try {
-            val m = ctx.javaClass.getMethod("getWorld")
-            m.invoke(ctx) as? ServerLevel
-        } catch (t: Throwable) {
-            logger.info("Project Ash: could not resolve ServerLevel from SpawningContext (${t.javaClass.simpleName}: ${t.message})")
-            null
-        }
-    }
-
     fun spawnCheckRule(context: SpawnEvent<PokemonEntity>): spawnResult? {
         // Pokemon Stuff!
-        val pokeUuid = context.entity.pokemon.uuid
-        val world = ctxServerLevel(context.ctx) ?: return null
+        val entity = context.entity
+        val pokemon = entity.pokemon
+        val pokeUuid = pokemon.uuid
+        val world = entity.commandSenderWorld as? ServerLevel ?: return null
         val dimension = when {
             world.dimension().toString().contains("overworld") -> "Overworld"
             world.dimension().toString().contains("the_nether") -> "Nether"
             world.dimension().toString().contains("the_end") -> "End"
             else -> return null
         }
-        val pos = context.ctx.position
+        val pos = entity.blockPosition()
         val posValue = pos.x.toString() + ", " + pos.y.toString() + ", " + pos.z.toString()
-        val players = context.ctx.world.players()
+        val players = world.players()
             .filter { it.isAlive }
             .minByOrNull { it.position().distanceToSqr(pos.toVec3d()) } // Use player's position for distance calculation
         val playerName = players?.name?.string?:""
-        val pokemon = context.entity.pokemon
         val shiny = pokemon.shiny
         val species = pokemon.species.translatedName.string
         val formVariation: String? = pokemon.form.labels

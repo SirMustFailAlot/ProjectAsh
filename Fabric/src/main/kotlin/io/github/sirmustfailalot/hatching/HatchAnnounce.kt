@@ -10,25 +10,31 @@ import kotlin.String
 import kotlin.text.contains
 import org.slf4j.LoggerFactory
 import kotlin.jvm.optionals.getOrNull
+import kotlin.text.contains
 
 object HatchAnnounce {
     private val logger = LoggerFactory.getLogger("project-ash")
-    fun onHatch(context: HatchEggEvent) {
+    fun onHatch(context: HatchEggEvent.Post) {
         val cachedProfile = ProjectAsh.server?.profileCache?.get(context.player.uuid)?.getOrNull()
         val playerName = cachedProfile?.name
             ?: ProjectAsh.server?.playerList?.getPlayer(context.player.uuid)?.name?.string
             ?: "Unknown Player"
-        val species = context.egg.species.toString()
+        val species = context.pokemon.species.translatedName.string
 
-        val formVariation: String? = context.egg.form
+        val formVariation: String? = context.pokemon.form.labels
+            .asSequence()
+            .map { it.toString() }
+            .firstOrNull { it.contains("_form", ignoreCase = true) }
+            ?.substringBefore("_form")
+            ?.replaceFirstChar { it.titlecase(Locale.ROOT) }
         val speciesPlusForm = if (formVariation.isNullOrBlank()) {
-            species.replaceFirstChar { firstChar -> firstChar.uppercase() }
+            species
         } else {
-            "${species.replaceFirstChar { firstChar -> firstChar.uppercase() }} (${formVariation.replaceFirstChar { firstChar -> firstChar.uppercase() }})"
+            "$species ($formVariation)"
         }
 
-        val shiny = context.egg.shiny!!
-        val ivs = context.egg.ivs!!
+        val shiny = context.pokemon.shiny
+        val ivs = context.pokemon.ivs!!
         val hp = ivs[Stats.HP] ?: 0
         val atk = ivs[Stats.ATTACK] ?: 0
         val def = ivs[Stats.DEFENCE] ?: 0
