@@ -24,44 +24,54 @@ object TrainerBattleTracker {
         return "Trainer"
     }
 
-    /**
-     * Triggers when the battle begins.
-     * Layout: [Project Ash] Battle Started: Player1, Player2 vs Trainer1, Trainer2
-     */
     fun onBattleStarted(event: BattleStartedEvent.Post) {
         val battle = event.battle
-        val server = io.github.sirmustfailalot.ProjectAsh.server ?: return
+        val server = ProjectAsh.server ?: return
 
+        // Separate players and trainers safely using Cobblemon ActorTypes
         val players = battle.actors
             .filter { it.type == ActorType.PLAYER }
             .mapNotNull { server.playerList.getPlayer(it.uuid) }
 
         if (players.isEmpty()) return
 
-        val trainers = battle.actors.filter { it.type == ActorType.NPC }
-        if (trainers.isEmpty()) return
+        val startMessage: Component
 
-        val playerNames = players.joinToString(", ") { it.scoreboardName }
+        // DYNAMIC LAYOUT CHECK 1: Check if this match format is classified as PvP
+        if (battle.isPvP) {
+            val side1Players = battle.side1.actors.filter { it.type == ActorType.PLAYER }.mapNotNull { server.playerList.getPlayer(it.uuid) }.joinToString(", ") { it.scoreboardName }
+            val side2Players = battle.side2.actors.filter { it.type == ActorType.PLAYER }.mapNotNull { server.playerList.getPlayer(it.uuid) }.joinToString(", ") { it.scoreboardName }
 
-        // FIX: Removed .distinct() so both trainers show up even if they share the same name/type
-        val trainerNames = trainers.map { getTrainerNameByUuid(it.uuid) }.joinToString(", ")
+            startMessage = Component.literal("⚔️ §bPvP Battle Started: $side1Players §7vs $side2Players")
+        } else {
+            // Otherwise, treat it as a standard Wild Pokemon or Trainer fight
+            val trainers = battle.actors.filter { it.type == ActorType.NPC }
+            if (trainers.isEmpty()) return // Skip if it's just a raw wild pokemon encounter
 
-        val startMessage = Component.literal("§6[Project Ash] §eBattle Started: §f$playerNames §7vs §b$trainerNames")
-        ProjectAsh.server?.playerList?.players?.forEach { p ->
+            val playerNames = players.joinToString(", ") { it.scoreboardName }
+            val trainerNames = trainers.map { getTrainerNameByUuid(it.uuid) }.joinToString(", ")
+
+            startMessage = Component.literal("§eBattle Started: $playerNames §7vs $trainerNames")
+        }
+
+        server.playerList.players.forEach { p ->
             p.sendSystemMessage(startMessage)
         }
     }
 
     /**
      * Triggers when the battle concludes.
-     * Layout: [Project Ash] Battle Finished: Winners (Green) vs Losers (Red)
      */
     fun onBattleCompleted(event: BattleVictoryEvent) {
         val battle = event.battle
-        val server = io.github.sirmustfailalot.ProjectAsh.server ?: return
+        val server = ProjectAsh.server ?: return
 
+        // DYNAMIC LAYOUT CHECK 2: Determine if we should process this as a PvP or PvN/Trainer battle
+        val isPvP = battle.isPvP
         val trainers = battle.actors.filter { it.type == ActorType.NPC }
-        if (trainers.isEmpty()) return
+
+        // If it's not a PvP match AND there are no NPC trainers, skip tracking (it was a wild pokemon encounter)
+        if (!isPvP && trainers.isEmpty()) return
 
         val totalActors = battle.actors.filter { it.type == ActorType.PLAYER || it.type == ActorType.NPC }
         val winningActors = event.winners
@@ -75,23 +85,38 @@ object TrainerBattleTracker {
             }
         }
 
-        // 1. Build a clean, single-line local in-game chat summary
+        // 1. Build local in-game chat summary
         val winnersString = winningActors.joinToString(", ") { "§a" + resolveActorName(it) }
         val losersString = losingActors.joinToString(", ") { "§c" + resolveActorName(it) }
 
-        val inGameSummary = Component.literal("§6[Project Ash] §eBattle Finished: $winnersString §7vs $losersString")
+        val inGameSummary = Component.literal("§eBattle Finished: $winnersString §7vs $losersString")
 
-        // Broadcast the simple summary to the server players
         server.playerList.players.forEach { p ->
             p.sendSystemMessage(inGameSummary)
         }
 
-        // 2. Build the detailed Discord summary payloads (keeping pokemon details here)
+        // Native fog-of-war collection: Gather opponent pokemon that the players' teams faced directly
+        val playerRevealedPokemonUuids = totalActors
+            .filter { it.type == ActorType.PLAYER }
+            .flatMap { playerActor -> playerActor.pokemonList }
+            .flatMap { playerPokemon -> playerPokemon.facedOpponents } // Derived straight from native class turn history loop
+            .map { seenPokemon -> seenPokemon.uuid }
+            .toSet()
+
+        // 2. Build the detailed team summary arrays for Discord
         val discordSummaries = totalActors.map { actor ->
             val name = resolveActorName(actor)
             val isWinner = winningActors.contains(actor)
 
-            val pokemonStatusList = actor.pokemonList.map { battlePokemon ->
+            // FILTER RULE: Only hide unrevealed bench slots for NPC trainers (ActorType.NPC)
+            // If it's a real player (even in a PvP match), show their full roster transparently
+            val targetPokemonList = if (actor.type == ActorType.NPC) {
+                actor.pokemonList.filter { npcPokemon -> playerRevealedPokemonUuids.contains(npcPokemon.uuid) }
+            } else {
+                actor.pokemonList
+            }
+
+            val pokemonStatusList = targetPokemonList.map { battlePokemon ->
                 val pokemonInstance = battlePokemon.originalPokemon
                 io.github.sirmustfailalot.DiscordPokemonStatus(
                     name = pokemonInstance.species.name,
@@ -99,6 +124,23 @@ object TrainerBattleTracker {
                     isShiny = pokemonInstance.shiny,
                     isFainted = battlePokemon.health <= 0 || pokemonInstance.currentHealth <= 0
                 )
+            }.toMutableList()
+
+            // Append fog-of-war entries only if it's an NPC trainer box slot
+            if (actor.type == ActorType.NPC) {
+                val unseenCount = actor.pokemonList.size - targetPokemonList.size
+                if (unseenCount > 0) {
+                    repeat(unseenCount) {
+                        pokemonStatusList.add(
+                            io.github.sirmustfailalot.DiscordPokemonStatus(
+                                name = "???",
+                                level = 0,
+                                isShiny = false,
+                                isFainted = false
+                            )
+                        )
+                    }
+                }
             }
 
             io.github.sirmustfailalot.DiscordParticipantSummary(

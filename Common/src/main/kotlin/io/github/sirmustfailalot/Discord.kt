@@ -174,18 +174,18 @@ object Discord {
                         "❌ $speciesPlusForm $eventType!"
                     }
                     val fields = if (eventType == "Captured")
-                        {
-                            listOf(
-                                EmbedField("Spawn Type", spawnTypeString),
-                                EmbedField("Player", playerName ?: "Unknown"))
-                        } else if (eventType == "Hatched")
-                        {
+                    {
+                        listOf(
+                            EmbedField("Spawn Type", spawnTypeString),
+                            EmbedField("Player", playerName ?: "Unknown"))
+                    } else if (eventType == "Hatched")
+                    {
                         listOf(
                             EmbedField("Hatch Type", spawnTypeString),
                             EmbedField("Player", playerName ?: "Unknown"))
-                        }else {
-                            listOf(
-                                EmbedField("Spawn Type", spawnTypeString))}
+                    }else {
+                        listOf(
+                            EmbedField("Spawn Type", spawnTypeString))}
 
                     val embed = Embed(
                         title = title,
@@ -195,9 +195,9 @@ object Discord {
                         {mapOf("url" to spriteUrl)}
                         else {
                             if (eventType == "Fainted")
-                                {mapOf("url" to "https://s-media-cache-ak0.pinimg.com/600x315/b1/20/08/b120087f3a904bda147251beaedf5755.jpg")}
+                            {mapOf("url" to "https://s-media-cache-ak0.pinimg.com/600x315/b1/20/08/b120087f3a904bda147251beaedf5755.jpg")}
                             else if (eventType == "Despawned")
-                                {mapOf("url" to "https://i.pinimg.com/originals/a9/48/e0/a948e0a1af81e162fe766faeeba3bc51.jpg")}
+                            {mapOf("url" to "https://i.pinimg.com/originals/a9/48/e0/a948e0a1af81e162fe766faeeba3bc51.jpg")}
                             else {null}
                         },
                         footer = mapOf("text" to "ProjectAsh"),
@@ -299,9 +299,14 @@ object Discord {
                     val outcomeTag = if (summary.isWinner) "🏆 WINNER" else "💀 DEFEAT"
 
                     val partyLines = summary.pokemonList.joinToString("\n") { poke ->
-                        val statusEmoji = if (poke.isFainted) "🟥" else "🟩"
-                        val shinySparkle = if (poke.isShiny) "✨ " else ""
-                        "$statusEmoji $shinySparkle${poke.name} *(Lv. ${poke.level})*"
+                        // FIX: Detect placeholder fog-of-war string to suppress Level strings and render a neutral grey/white circle
+                        if (poke.name == "???") {
+                            "🟪 *${poke.name}*"
+                        } else {
+                            val statusEmoji = if (poke.isFainted) "🟥" else "🟩"
+                            val shinySparkle = if (poke.isShiny) "✨ " else ""
+                            "$statusEmoji $shinySparkle${poke.name} *(Lv. ${poke.level})*"
+                        }
                     }.ifBlank { "*No Pokémon brought*" }
 
                     EmbedField(
