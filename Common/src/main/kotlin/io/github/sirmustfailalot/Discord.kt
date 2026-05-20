@@ -34,6 +34,9 @@ private data class OfficialArtwork(
     @SerializedName("front_shiny") val frontShiny: String?
 )
 
+data class DiscordPokemonStatus(val name: String, val level: Int, val isShiny: Boolean, val isFainted: Boolean)
+data class DiscordParticipantSummary(val displayName: String, val isWinner: Boolean, val pokemonList: List<DiscordPokemonStatus>)
+
 // For species → default variety fallback
 private data class SpeciesDTO(val varieties: List<Variety>?)
 private data class Variety(
@@ -281,6 +284,51 @@ object Discord {
             }
     }
 
+    fun battleFinished(server: MinecraftServer?, summaries: List<DiscordParticipantSummary>) {
+        io.execute {
+            try {
+                if (!Config.data.server.discordEnabled) return@execute
+                val webhook = Config.data.server.discordWebhook
+                if (webhook.isNullOrBlank() || webhook == "https://your.webhook.url/here") {
+                    Announcement.discordWebhookFail(server)
+                    return@execute
+                }
+
+                // Map every trainer and player into their own side-by-side box entry
+                val fields = summaries.map { summary ->
+                    val outcomeTag = if (summary.isWinner) "🏆 WINNER" else "💀 DEFEAT"
+
+                    val partyLines = summary.pokemonList.joinToString("\n") { poke ->
+                        val statusEmoji = if (poke.isFainted) "🟥" else "🟩"
+                        val shinySparkle = if (poke.isShiny) "✨ " else ""
+                        "$statusEmoji $shinySparkle${poke.name} *(Lv. ${poke.level})*"
+                    }.ifBlank { "*No Pokémon brought*" }
+
+                    EmbedField(
+                        name = "${summary.displayName}\n($outcomeTag)",
+                        value = partyLines,
+                        inline = true
+                    )
+                }
+
+                val teamWonAll = summaries.any { it.isWinner }
+                val cardColor = if (teamWonAll) 0x2ECC71 else 0xE74C3C
+
+                val embed = Embed(
+                    title = "⚔️ Trainer Battle Encounter Finished",
+                    color = cardColor,
+                    fields = fields,
+                    footer = mapOf("text" to "ProjectAsh · Battle Tracker"),
+                    timestamp = Instant.now().toString()
+                )
+
+                val body = gson.toJson(WebhookPayload(embeds = listOf(embed)))
+                sendMessage(webhook, body)
+            } catch (t: Throwable) {
+                logger.info("Project Ash: Discord battleFinished() error: ${t.message}")
+            }
+        }
+    }
 
     // ────────────────────────────────────────────────────────────────────────
     // HTTP helper for PokeAPI GETs

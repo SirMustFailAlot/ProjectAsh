@@ -1,5 +1,6 @@
 package io.github.sirmustfailalot
 
+import io.github.sirmustfailalot.battle.TrainerBattleTracker
 import net.fabricmc.api.ModInitializer
 
 // Cobblemon
@@ -61,5 +62,13 @@ object ProjectAsh : ModInitializer {
         }
 
         CobblemonEvents.HATCH_EGG_POST.subscribe(Priority.LOWEST, HatchAnnounce::onHatch)
+
+        CobblemonEvents.BATTLE_STARTED_POST.subscribe { event ->
+            TrainerBattleTracker.onBattleStarted(event)
+        }
+
+        CobblemonEvents.BATTLE_VICTORY.subscribe { event ->
+            TrainerBattleTracker.onBattleCompleted(event)
+        }
     }
 }
