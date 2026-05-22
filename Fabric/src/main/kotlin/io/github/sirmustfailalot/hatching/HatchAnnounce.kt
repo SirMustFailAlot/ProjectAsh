@@ -19,18 +19,56 @@ object HatchAnnounce {
         val playerName = cachedProfile?.name
             ?: ProjectAsh.server?.playerList?.getPlayer(context.player.uuid)?.name?.string
             ?: "Unknown Player"
-        val species = context.pokemon.species.translatedName.string
-
-        val formVariation: String? = context.pokemon.form.labels
+        val pokemon = context.pokemon
+        var species = pokemon.species.translatedName.string
+        val formVariation: String? = pokemon.form.labels
             .asSequence()
             .map { it.toString() }
             .firstOrNull { it.contains("_form", ignoreCase = true) }
             ?.substringBefore("_form")
             ?.replaceFirstChar { it.titlecase(Locale.ROOT) }
-        val speciesPlusForm = if (formVariation.isNullOrBlank()) {
-            species
+
+        var nonOriginalFormFound = false;
+        if (!formVariation.isNullOrBlank()) {
+            pokemon.features.forEach {
+                if (it.name.trim().lowercase() == formVariation.trim().lowercase()) {
+                    nonOriginalFormFound = true
+                }
+            }
+        }
+
+        var speciesPlusForm = ""
+        if (formVariation.isNullOrBlank() || !nonOriginalFormFound) {
+            speciesPlusForm = species
         } else {
-            "$species ($formVariation)"
+            if (pokemon.species.translatedName.string == "Tauros") {
+                when (pokemon.form.name) {
+                    "Paldea-Combat" -> {
+                        speciesPlusForm = "Paldean $species (Combat)"
+                        species = "${species}_paldea_combat_breed"
+                    } "Paldea-Blaze" -> {
+                    speciesPlusForm = "Paldean $species (Blaze)"
+                    species = "${species}_paldea_blaze_breed"
+                } "Paldea-Aqua" -> {
+                    speciesPlusForm = "Paldean $species (Aqua)"
+                    species = "${species}_paldea_aqua_breed"
+                } else -> {
+                    speciesPlusForm = "$species issue"
+                    species = "${species}"
+                }
+                }
+            } else {
+                speciesPlusForm = "$formVariation $species"
+            }
+            when (formVariation) {
+                "Alolan" -> {
+                    species = "${species}_alola"
+                } "Galarian" -> {
+                species = "${species}_galar"
+            } "Hisuian" -> {
+                species = "${species}_hisui"
+            }
+            }
         }
 
         val shiny = context.pokemon.shiny
