@@ -13,6 +13,7 @@ object ProjectAshCommand {
         ServerDiscordThumbnails,
         ServerInGameEnabled,
         ServerShinyChecks,
+        ServerCheckUnknownSpawns,
         ServerLabelChecks,
         ServerSpecialChecks
     )

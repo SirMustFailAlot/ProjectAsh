@@ -54,7 +54,14 @@ object ProjectAsh : ModInitializer {
 
         CobblemonEvents.POKEMON_FAINTED.subscribe(Priority.LOWEST, SpawnTracker::onFainted)
 
-        // 4) Vanilla removal (to detect natural despawns)
+        ServerEntityEvents.ENTITY_LOAD.register { entity, world ->
+            if (entity is PokemonEntity) {
+                // Route it to a new function in SpawnTracker
+                logger.info(entity.spawnCause.toString())
+                logger.info(entity.spawnCause?.javaClass?.canonicalName?: "Nope!")
+                // SpawnTracker.onVanillaEntityLoad(entity, world)
+            }
+        }
         ServerEntityEvents.ENTITY_UNLOAD.register { entity, _world ->
             if (entity is PokemonEntity) {
                 SpawnTracker.onRemoved(entity, entity.removalReason)
