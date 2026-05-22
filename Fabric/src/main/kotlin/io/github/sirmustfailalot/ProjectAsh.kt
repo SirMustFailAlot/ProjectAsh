@@ -56,10 +56,10 @@ object ProjectAsh : ModInitializer {
 
         ServerEntityEvents.ENTITY_LOAD.register { entity, world ->
             if (entity is PokemonEntity) {
-                // Route it to a new function in SpawnTracker
-                logger.info(entity.spawnCause.toString())
-                logger.info(entity.spawnCause?.javaClass?.canonicalName?: "Nope!")
-                // SpawnTracker.onVanillaEntityLoad(entity, world)
+                val spawnCause = if (entity.spawnCause == null || entity.spawnCause?.javaClass?.simpleName?.contains("Command", ignoreCase = true)?: false) { true } else { false }
+                if (spawnCause) {
+                    SpawnTracker.onSpawnUnknown(entity)
+                }
             }
         }
         ServerEntityEvents.ENTITY_UNLOAD.register { entity, _world ->

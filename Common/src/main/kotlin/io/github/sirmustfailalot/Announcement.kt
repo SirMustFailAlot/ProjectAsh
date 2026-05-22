@@ -40,19 +40,34 @@ private fun normalizeLabel(s: String): String =
 object Announcement {
     private val logger = LoggerFactory.getLogger("ProjectAsh")
 
-    fun spawn(announceType: String, announcePlayers: List<String>, server: MinecraftServer?, dimension: String, playerName: String?, spawnType: List<String>, species: String, posValue: String) {
+    fun spawn(announceSource: String, announceTarget: String, announcePlayers: List<String>, server: MinecraftServer?, dimension: String, playerName: String?, spawnType: List<String>, species: String, posValue: String) {
         val message = if (dimension == "Overworld") {
-            renderLabeledMessage(
-                labelsInOrder = spawnType,
-                messageTail = "$species spawned near $playerName at $posValue"
-            )
+            if (announceSource === "Unknown") {
+                renderLabeledMessage(
+                    labelsInOrder = spawnType,
+                    messageTail = "$species has somehow spawned near $playerName at $posValue"
+                )
+            } else {
+                renderLabeledMessage(
+                    labelsInOrder = spawnType,
+                    messageTail = "$species spawned near $playerName at $posValue"
+                )
+            }
         } else {
-            renderLabeledMessage(
-                labelsInOrder = spawnType,
-                messageTail = "$species spawned in the $dimension near $playerName at $posValue"
-            )
+            if (announceSource === "Unknown") {
+                renderLabeledMessage(
+                    labelsInOrder = spawnType,
+                    messageTail = "$species has somehow spawned in the $dimension, near $playerName at $posValue"
+                )
+            } else {
+                renderLabeledMessage(
+                    labelsInOrder = spawnType,
+                    messageTail = "$species spawned in the $dimension, near $playerName at $posValue"
+                )
+            }
         }
-        if (announceType == "Server") {
+
+        if (announceTarget == "Server") {
             val ingameEnabled = Config.data.server.ingameEnabled
             if (ingameEnabled) {
                 server.let { server ->
@@ -61,17 +76,17 @@ object Announcement {
                     }
                 }
             }
-        } else if (announceType == "Players") {
+        } else if (announceTarget == "Players" && announceSource != "Unknown") {
             if (server != null) sendMessageToPlayers(server, message, announcePlayers)
         }
     }
 
-    fun capture(announceType: String, announcePlayers: List<String>, server: MinecraftServer?, playerName: String?, spawnType: List<String>, species: String) {
+    fun capture(announceTarget: String, announcePlayers: List<String>, server: MinecraftServer?, playerName: String?, spawnType: List<String>, species: String) {
         val message = renderLabeledMessage(
             labelsInOrder = spawnType,
             messageTail = "$species was caught by $playerName!")
 
-        if (announceType == "Server") {
+        if (announceTarget == "Server") {
             val ingameEnabled = Config.data.server.ingameEnabled
             if (ingameEnabled) {
                 server.let { server ->
@@ -80,17 +95,17 @@ object Announcement {
                     }
                 }
             }
-        } else if (announceType == "Players") {
+        } else if (announceTarget == "Players") {
             if (server != null) sendMessageToPlayers(server, message, announcePlayers)
         }
     }
 
-    fun fainted(announceType: String, announcePlayers: List<String>, server: MinecraftServer?, spawnType: List<String>, species: String) {
+    fun fainted(announceTarget: String, announcePlayers: List<String>, server: MinecraftServer?, spawnType: List<String>, species: String) {
         val message = renderLabeledMessage(
             labelsInOrder = spawnType,
             messageTail = "$species fainted! Well... Back to it then! :(")
 
-        if (announceType == "Server") {
+        if (announceTarget == "Server") {
             val ingameEnabled = Config.data.server.ingameEnabled
             if (ingameEnabled) {
                 server.let { server ->
@@ -99,17 +114,17 @@ object Announcement {
                     }
                 }
             }
-        } else if (announceType == "Players") {
+        } else if (announceTarget == "Players") {
             if (server != null) sendMessageToPlayers(server, message, announcePlayers)
         }
     }
 
-    fun removed(announceType: String, announcePlayers: List<String>, server: MinecraftServer?, spawnType: List<String>, species: String) {
+    fun removed(announceTarget: String, announcePlayers: List<String>, server: MinecraftServer?, spawnType: List<String>, species: String) {
         val message = renderLabeledMessage(
             labelsInOrder = spawnType,
             messageTail = "$species has despawned!")
 
-        if (announceType == "Server") {
+        if (announceTarget == "Server") {
             val ingameEnabled = Config.data.server.ingameEnabled
             if (ingameEnabled) {
                 server.let { server ->
@@ -118,7 +133,7 @@ object Announcement {
                     }
                 }
             }
-        } else if (announceType == "Players") {
+        } else if (announceTarget == "Players") {
             if (server != null) sendMessageToPlayers(server, message, announcePlayers)
         }
     }

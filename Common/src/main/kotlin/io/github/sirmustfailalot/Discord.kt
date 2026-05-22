@@ -69,6 +69,7 @@ object Discord {
 
     fun spawn(
         server: MinecraftServer?,
+        announceSource: String,
         dimension: String,
         playerName: String?,
         spawnType: List<String>,
@@ -95,11 +96,21 @@ object Discord {
                     } else {
                         Config.data.sprites[normalisedSpecies]?.standard}
                     val title = (if (shiny) "✨ " else "") + "$spawnTypeString — $speciesPlusForm"
-                    val fields = listOf(
-                        EmbedField("Dimension", dimension),
-                        EmbedField("Closest Player", playerName ?: "Unknown"),
-                        EmbedField("Position", "`$posValue`")
-                    )
+
+                    val fields = if (announceSource === "Unknown") {
+                        listOf(
+                            EmbedField("Spawn Source", "Unknown"),
+                            EmbedField("Dimension", dimension),
+                            EmbedField("Closest Player", playerName ?: "Unknown"),
+                            EmbedField("Position", "`$posValue`")
+                        )
+                    } else {
+                        listOf(
+                            EmbedField("Dimension", dimension),
+                            EmbedField("Closest Player", playerName ?: "Unknown"),
+                            EmbedField("Position", "`$posValue`")
+                        )
+                    }
 
                     val embed = Embed(
                         title = title,
