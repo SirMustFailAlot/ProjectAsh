@@ -13,6 +13,7 @@ import io.github.sirmustfailalot.Config
 import io.github.sirmustfailalot.Config.getPlayerSpecialRules
 import io.github.sirmustfailalot.Config.addPlayerSpecialRule
 import io.github.sirmustfailalot.Config.removePlayerSpecialRule
+import net.minecraft.ChatFormatting
 
 object PlayerSpecialChecks : PAPlayerSubcommand {
 
@@ -48,7 +49,8 @@ object PlayerSpecialChecks : PAPlayerSubcommand {
                 .executes { ctx ->
                     val player = executingPlayerNameOrFail(ctx) ?: return@executes 0
                     Config.setPlayerSpecialCheck(player, true)
-                    ctx.source.sendSuccess({ Component.literal("[Project Ash] Player Special Checks: ENABLED") }, true)
+                    ctx.source.sendSuccess({ Component.literal("[Project Ash] Player Special Checks: ENABLED").withStyle(
+                        ChatFormatting.GREEN) }, true)
                     1
                 }
                 )
@@ -56,7 +58,7 @@ object PlayerSpecialChecks : PAPlayerSubcommand {
                 .executes { ctx ->
                     val player = executingPlayerNameOrFail(ctx) ?: return@executes 0
                     Config.setPlayerSpecialCheck(player, false)
-                    ctx.source.sendSuccess({ Component.literal("[Project Ash] Player Special Checks: DISABLED") }, true)
+                    ctx.source.sendSuccess({ Component.literal("[Project Ash] Player Special Checks: DISABLED").withStyle(ChatFormatting.RED) }, true)
                     1
                 }
                 )
