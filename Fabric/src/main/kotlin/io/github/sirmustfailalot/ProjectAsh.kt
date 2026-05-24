@@ -1,7 +1,9 @@
 package io.github.sirmustfailalot
 
-import io.github.sirmustfailalot.battle.TrainerBattleTracker
+
 import net.fabricmc.api.ModInitializer
+import io.github.sirmustfailalot.battle.TrainerBattleTracker
+import io.github.sirmustfailalot.utility.FabricLoggerImpl
 
 // Cobblemon
 import com.cobblemon.mod.common.api.Priority
@@ -18,9 +20,11 @@ import io.github.sirmustfailalot.projectash.commands.ProjectAshCommand
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
 import io.github.sirmustfailalot.hatching.HatchAnnounce
+import io.github.sirmustfailalot.utility.FileLogger
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.server.level.ServerPlayer
+import java.nio.file.Files
 
 interface PASubcommand {
     /** Return the literal node to hang under /projectash */
@@ -40,6 +44,9 @@ object ProjectAsh : ModInitializer {
         ServerLifecycleEvents.SERVER_STOPPED.register {
             server = null
         }
+
+        FileLogger.platformImpl = FabricLoggerImpl()
+        FileLogger.log("Project Ash Initialized")
 
         CommandRegistrationCallback.EVENT.register { dispatcher, _, _ ->
             ProjectAshCommand.register(dispatcher)

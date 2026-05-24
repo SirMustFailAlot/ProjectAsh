@@ -31,6 +31,7 @@ data class ServerRule(
 )
 
 data class PlayerRule(
+    var catchEmAllMode: Boolean = false,
     var enabled: Boolean = true,
     var specialCheck: MutableList<SpecialRule> = mutableListOf()
 )
@@ -150,6 +151,24 @@ object Config {
         }
 
         return playerRule
+    }
+
+    fun toggleCatchEmAllMode(playerName: String, toggle: Boolean): Boolean {
+        val p = ensurePlayer(playerName)
+        write {
+            // ensurePlayer() already created it.data.player[playerName]
+            it.player[playerName]!!.catchEmAllMode = toggle
+            logger.info("Player $playerName is now in CatchEmAll mode: $toggle")
+        }
+        return true
+    }
+
+    fun getCatchEmAllPlayers(): List<String> {
+        return data.player.entries
+            .asSequence()
+            .filter { (_, rule) -> rule.catchEmAllMode }
+            .map { (name, _) -> name }
+            .toList()
     }
 
     fun addPlayerSpecialRule(playerName: String, species: String, shinyOnly: Boolean): Boolean {

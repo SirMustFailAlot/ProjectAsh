@@ -76,7 +76,8 @@ object Discord {
         shiny: Boolean,
         species: String,
         speciesPlusForm: String,
-        posValue: String
+        posValue: String,
+        thumbnailURL: String
     ) {
         io.execute {
             try {
@@ -90,11 +91,7 @@ object Discord {
                     }
 
                     val spawnTypeString = labelsToSpawnTypeString(spawnType)
-                    val normalisedSpecies = normalise(species)
-                    val spriteUrl = if (shiny) {
-                        Config.data.sprites[normalisedSpecies]?.shiny
-                    } else {
-                        Config.data.sprites[normalisedSpecies]?.standard}
+
                     val title = (if (shiny) "✨ " else "") + "$spawnTypeString — $speciesPlusForm"
 
                     val fields = if (announceSource === "Unknown") {
@@ -116,8 +113,8 @@ object Discord {
                         title = title,
                         color = getEmbedColour(spawnType),
                         fields = fields,
-                        thumbnail = if (Thumbnails && spriteUrl != null)
-                            mapOf("url" to spriteUrl)
+                        thumbnail = if (Thumbnails && thumbnailURL != null)
+                            mapOf("url" to thumbnailURL)
                         else
                             null,
                         footer = mapOf("text" to "ProjectAsh"),
@@ -139,7 +136,8 @@ object Discord {
         playerName: String? = null,
         spawnType: List<String>,
         species: String,
-        speciesPlusForm: String
+        speciesPlusForm: String,
+        thumbnailURL: String
     ) {
         io.execute {
             try {
@@ -152,14 +150,8 @@ object Discord {
                         return@execute
                     }
 
-                    val shiny = when {spawnType.any { it.equals("shiny", ignoreCase = true)} -> true else -> false}
-
                     val spawnTypeString = labelsToSpawnTypeString(spawnType)
-                    val normalisedSpecies = normalise(species)
-                    val spriteUrl = if (shiny) {
-                        Config.data.sprites[normalisedSpecies]?.shiny
-                    } else {
-                        Config.data.sprites[normalisedSpecies]?.standard}
+
                     val title = if (eventType == "Captured") {
                         "✅ $eventType $speciesPlusForm!"
                     } else if (eventType == "Hatched") {
@@ -185,8 +177,8 @@ object Discord {
                         title = title,
                         color = getEmbedColour(spawnType),
                         fields = fields,
-                        thumbnail = if ((eventType == "Captured" || eventType == "Hatched") && Thumbnails && spriteUrl != null)
-                        {mapOf("url" to spriteUrl)}
+                        thumbnail = if ((eventType == "Captured" || eventType == "Hatched") && Thumbnails && thumbnailURL != null)
+                        {mapOf("url" to thumbnailURL)}
                         else {
                             if (eventType == "Fainted")
                             {mapOf("url" to "https://s-media-cache-ak0.pinimg.com/600x315/b1/20/08/b120087f3a904bda147251beaedf5755.jpg")}
@@ -341,19 +333,9 @@ object Discord {
             val resp = http.send(req, HttpResponse.BodyHandlers.ofString())
             HttpText(resp.statusCode(), resp.body())
         } catch (t: Throwable) {
-            logger.info("Project Ash: HTTP GET error for '$url': ${t.message}")
-            HttpText(599, null) // sentinel for network error
-        }
-
-    private fun normalise(name: String): String =
-        name.trim().lowercase()
-            .replace(' ', '-')    // "Mr Mime" -> "mr-mime"
-            .replace(":", "-")    // "Type: Null" -> "type-null"
-            .replace(".", "")     // "Mr. Mime" -> "mr-mime"
-            .replace("'", "")     // "Farfetch'd" -> "farfetchd"
-            .replace("é", "e")    // "Flabébé" -> "flabebe"
-            .replace("♀", "-f")   // "Nidoran♀" -> "nidoran-f"
-            .replace("♂", "-m")   // "Nidoran♂" -> "nidoran-m"
+        logger.info("Project Ash: HTTP GET error for '$url': ${t.message}")
+        HttpText(599, null) // sentinel for network error
+    }
 
     fun labelsToSpawnTypeString(labels: List<String>): String {
         if (labels.isEmpty()) return ""

@@ -19,7 +19,8 @@ object ProjectAshCommand {
     )
 
     private val playerSubs: List<PAPlayerSubcommand> = listOf(
-        PlayerSpecialChecks
+        PlayerSpecialChecks,
+        PlayerCatchEmAll
     )
 
     fun register(dispatcher: CommandDispatcher<CommandSourceStack>) {
