@@ -15,7 +15,8 @@ object PlayerCatchEmAll : PAPlayerSubcommand {
         return try {
             ctx.source.playerOrException.scoreboardName
         } catch (_: Exception) {
-            ctx.source.sendFailure(Component.literal("[Project Ash] This command must be run by a player in-game."))
+            ctx.source.sendSuccess(
+                { Component.literal("[Project Ash] This command must be run by a player in-game.") }, false)
             null
         }
     }
@@ -26,7 +27,7 @@ object PlayerCatchEmAll : PAPlayerSubcommand {
                 .executes { ctx ->
                     val player = executingPlayerNameOrFail(ctx) ?: return@executes 0
                     toggleCatchEmAllMode(player, true)
-                    ctx.source.sendSuccess({ Component.literal("[Project Ash] CatchEmAll: ENABLED").withStyle(ChatFormatting.GREEN) }, true)
+                    ctx.source.sendSuccess({ Component.literal("[Project Ash] CatchEmAll: ENABLED").withStyle(ChatFormatting.GREEN) }, false)
                      1
                 }
             )
@@ -34,7 +35,7 @@ object PlayerCatchEmAll : PAPlayerSubcommand {
                 .executes { ctx ->
                     val player = executingPlayerNameOrFail(ctx) ?: return@executes 0
                     toggleCatchEmAllMode(player, false)
-                    ctx.source.sendSuccess({ Component.literal("[Project Ash] CatchEmAll: DISABLED").withStyle(ChatFormatting.RED) }, true)
+                    ctx.source.sendSuccess({ Component.literal("[Project Ash] CatchEmAll: DISABLED").withStyle(ChatFormatting.RED) }, false)
                     1
                 }
 }

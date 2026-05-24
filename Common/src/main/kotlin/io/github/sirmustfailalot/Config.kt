@@ -158,6 +158,7 @@ object Config {
         write {
             // ensurePlayer() already created it.data.player[playerName]
             it.player[playerName]!!.catchEmAllMode = toggle
+            logger.info("Player $playerName is now in CatchEmAll mode: $toggle")
         }
         return true
     }
