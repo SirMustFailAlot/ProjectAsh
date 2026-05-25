@@ -1,9 +1,7 @@
 package io.github.sirmustfailalot
 
 import com.google.gson.Gson
-import com.google.gson.JsonObject
 import com.google.gson.annotations.SerializedName
-import net.minecraft.network.chat.Component
 import net.minecraft.server.MinecraftServer
 import org.slf4j.LoggerFactory
 import java.time.Duration
@@ -15,11 +13,7 @@ import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
-import kotlin.compareTo
 
-// ───────────────────────────────────────────────────────────────────────────────
-// PokeAPI DTOs
-// ───────────────────────────────────────────────────────────────────────────────
 private data class PokeApiPokemon(val sprites: Sprites?)
 private data class Sprites(
     @SerializedName("front_default") val frontDefault: String?,
@@ -34,7 +28,9 @@ private data class OfficialArtwork(
     @SerializedName("front_shiny") val frontShiny: String?
 )
 
-// For species → default variety fallback
+data class DiscordPokemonStatus(val name: String, val level: Int, val isShiny: Boolean, val isFainted: Boolean)
+data class DiscordParticipantSummary(val displayName: String, val isWinner: Boolean, val pokemonList: List<DiscordPokemonStatus>)
+
 private data class SpeciesDTO(val varieties: List<Variety>?)
 private data class Variety(
     @SerializedName("is_default") val isDefault: Boolean,
@@ -42,9 +38,6 @@ private data class Variety(
 )
 private data class NamedUrl(val name: String?, val url: String?)
 
-// ───────────────────────────────────────────────────────────────────────────────
-// Discord payload DTOs
-// ───────────────────────────────────────────────────────────────────────────────
 private data class EmbedField(val name: String, val value: String, val inline: Boolean = false)
 private data class Embed(
     val author: Map<String, String>? = null,
@@ -67,29 +60,24 @@ object Discord {
     private val http: HttpClient = HttpClient.newBuilder()
         .connectTimeout(Duration.ofSeconds(8))
         .build()
-
-    // Single IO worker: keeps HTTP off the tick thread, reduces rate-limit headaches
     private val io: ExecutorService = Executors.newSingleThreadExecutor {
         Thread(it, "ProjectAsh-Discord-IO").apply { isDaemon = true }
     }
-
-    // TTL cache (24h) for sprite URLs
     private data class CacheEntry(val url: String?, val expiresAtMs: Long)
     private val cache = ConcurrentHashMap<String, CacheEntry>()
     private const val CACHE_TTL_MS = 24 * 60 * 60 * 1000L // 24h
 
-    // ────────────────────────────────────────────────────────────────────────
-    // Public API
-    // ────────────────────────────────────────────────────────────────────────
     fun spawn(
         server: MinecraftServer?,
+        announceSource: String,
         dimension: String,
         playerName: String?,
         spawnType: List<String>,
         shiny: Boolean,
         species: String,
         speciesPlusForm: String,
-        posValue: String
+        posValue: String,
+        thumbnailURL: String
     ) {
         io.execute {
             try {
@@ -103,24 +91,30 @@ object Discord {
                     }
 
                     val spawnTypeString = labelsToSpawnTypeString(spawnType)
-                    val normalisedSpecies = normalize(species)
-                    val spriteUrl = if (shiny) {
-                        Config.data.sprites[normalisedSpecies]?.shiny
-                    } else {
-                        Config.data.sprites[normalisedSpecies]?.standard}
+
                     val title = (if (shiny) "✨ " else "") + "$spawnTypeString — $speciesPlusForm"
-                    val fields = listOf(
-                        EmbedField("Dimension", dimension),
-                        EmbedField("Closest Player", playerName ?: "Unknown"),
-                        EmbedField("Position", "`$posValue`")
-                    )
+
+                    val fields = if (announceSource === "Unknown") {
+                        listOf(
+                            EmbedField("Spawn Source", "Unknown"),
+                            EmbedField("Dimension", dimension),
+                            EmbedField("Closest Player", playerName ?: "Unknown"),
+                            EmbedField("Position", "`$posValue`")
+                        )
+                    } else {
+                        listOf(
+                            EmbedField("Dimension", dimension),
+                            EmbedField("Closest Player", playerName ?: "Unknown"),
+                            EmbedField("Position", "`$posValue`")
+                        )
+                    }
 
                     val embed = Embed(
                         title = title,
                         color = getEmbedColour(spawnType),
                         fields = fields,
-                        thumbnail = if (Thumbnails && spriteUrl != null)
-                            mapOf("url" to spriteUrl)
+                        thumbnail = if (Thumbnails && thumbnailURL != null)
+                            mapOf("url" to thumbnailURL)
                         else
                             null,
                         footer = mapOf("text" to "ProjectAsh"),
@@ -142,7 +136,8 @@ object Discord {
         playerName: String? = null,
         spawnType: List<String>,
         species: String,
-        speciesPlusForm: String
+        speciesPlusForm: String,
+        thumbnailURL: String
     ) {
         io.execute {
             try {
@@ -155,14 +150,8 @@ object Discord {
                         return@execute
                     }
 
-                    val shiny = when {spawnType.any { it.equals("shiny", ignoreCase = true)} -> true else -> false}
-
                     val spawnTypeString = labelsToSpawnTypeString(spawnType)
-                    val normalisedSpecies = normalize(species)
-                    val spriteUrl = if (shiny) {
-                        Config.data.sprites[normalisedSpecies]?.shiny
-                    } else {
-                        Config.data.sprites[normalisedSpecies]?.standard}
+
                     val title = if (eventType == "Captured") {
                         "✅ $eventType $speciesPlusForm!"
                     } else if (eventType == "Hatched") {
@@ -171,30 +160,30 @@ object Discord {
                         "❌ $speciesPlusForm $eventType!"
                     }
                     val fields = if (eventType == "Captured")
-                        {
-                            listOf(
-                                EmbedField("Spawn Type", spawnTypeString),
-                                EmbedField("Player", playerName ?: "Unknown"))
-                        } else if (eventType == "Hatched")
-                        {
+                    {
+                        listOf(
+                            EmbedField("Spawn Type", spawnTypeString),
+                            EmbedField("Player", playerName ?: "Unknown"))
+                    } else if (eventType == "Hatched")
+                    {
                         listOf(
                             EmbedField("Hatch Type", spawnTypeString),
                             EmbedField("Player", playerName ?: "Unknown"))
-                        }else {
-                            listOf(
-                                EmbedField("Spawn Type", spawnTypeString))}
+                    }else {
+                        listOf(
+                            EmbedField("Spawn Type", spawnTypeString))}
 
                     val embed = Embed(
                         title = title,
                         color = getEmbedColour(spawnType),
                         fields = fields,
-                        thumbnail = if ((eventType == "Captured" || eventType == "Hatched") && Thumbnails && spriteUrl != null)
-                        {mapOf("url" to spriteUrl)}
+                        thumbnail = if ((eventType == "Captured" || eventType == "Hatched") && Thumbnails && thumbnailURL != null)
+                        {mapOf("url" to thumbnailURL)}
                         else {
                             if (eventType == "Fainted")
-                                {mapOf("url" to "https://s-media-cache-ak0.pinimg.com/600x315/b1/20/08/b120087f3a904bda147251beaedf5755.jpg")}
+                            {mapOf("url" to "https://s-media-cache-ak0.pinimg.com/600x315/b1/20/08/b120087f3a904bda147251beaedf5755.jpg")}
                             else if (eventType == "Despawned")
-                                {mapOf("url" to "https://i.pinimg.com/originals/a9/48/e0/a948e0a1af81e162fe766faeeba3bc51.jpg")}
+                            {mapOf("url" to "https://i.pinimg.com/originals/a9/48/e0/a948e0a1af81e162fe766faeeba3bc51.jpg")}
                             else {null}
                         },
                         footer = mapOf("text" to "ProjectAsh"),
@@ -206,6 +195,59 @@ object Discord {
                 }
             } catch (t: Throwable) {
                 logger.info("Project Ash: Discord send() error: ${t.message}")
+            }
+        }
+    }
+
+    fun battleFinished(
+        server: MinecraftServer?,
+        summaries: List<DiscordParticipantSummary>
+    ) {
+        io.execute {
+            try {
+                if (!Config.data.server.discordEnabled) return@execute
+                val webhook = Config.data.server.discordWebhook
+                if (webhook.isNullOrBlank() || webhook == "https://your.webhook.url/here") {
+                    Announcement.discordWebhookFail(server)
+                    return@execute
+                }
+
+                val fields = summaries.map { summary ->
+                    val outcomeTag = if (summary.isWinner) "🏆 WINNER" else "💀 DEFEAT"
+
+                    val partyLines = summary.pokemonList.joinToString("\n") { poke ->
+                        // FIX: Detect placeholder fog-of-war string to suppress Level strings and render a neutral grey/white circle
+                        if (poke.name == "???") {
+                            "🟪 *${poke.name}*"
+                        } else {
+                            val statusEmoji = if (poke.isFainted) "🟥" else "🟩"
+                            val shinySparkle = if (poke.isShiny) "✨ " else ""
+                            "$statusEmoji $shinySparkle${poke.name} *(Lv. ${poke.level})*"
+                        }
+                    }.ifBlank { "*No Pokémon brought*" }
+
+                    EmbedField(
+                        name = "${summary.displayName}\n($outcomeTag)",
+                        value = partyLines,
+                        inline = true
+                    )
+                }
+
+                val teamWonAll = summaries.any { it.isWinner }
+                val cardColor = if (teamWonAll) 0x2ECC71 else 0xE74C3C
+
+                val embed = Embed(
+                    title = "⚔️ Trainer Battle Encounter Finished",
+                    color = cardColor,
+                    fields = fields,
+                    footer = mapOf("text" to "ProjectAsh · Battle Tracker"),
+                    timestamp = Instant.now().toString()
+                )
+
+                val body = gson.toJson(WebhookPayload(embeds = listOf(embed)))
+                sendMessage(webhook, body)
+            } catch (t: Throwable) {
+                logger.info("Project Ash: Discord battleFinished() error: ${t.message}")
             }
         }
     }
@@ -281,43 +323,25 @@ object Discord {
             }
     }
 
-
-    // ────────────────────────────────────────────────────────────────────────
-    // HTTP helper for PokeAPI GETs
-    // ────────────────────────────────────────────────────────────────────────
     private data class HttpText(val code: Int, val body: String?)
     private fun httpGet(url: String): HttpText = try {
-        val req = HttpRequest.newBuilder(URI.create(url))
-            .header("User-Agent", "ProjectAsh/1.0")
-            .timeout(Duration.ofSeconds(8))
-            .GET()
-            .build()
-        val resp = http.send(req, HttpResponse.BodyHandlers.ofString())
-        HttpText(resp.statusCode(), resp.body())
-    } catch (t: Throwable) {
+            val req = HttpRequest.newBuilder(URI.create(url))
+                .header("User-Agent", "ProjectAsh/1.0")
+                .timeout(Duration.ofSeconds(8))
+                .GET()
+                .build()
+            val resp = http.send(req, HttpResponse.BodyHandlers.ofString())
+            HttpText(resp.statusCode(), resp.body())
+        } catch (t: Throwable) {
         logger.info("Project Ash: HTTP GET error for '$url': ${t.message}")
         HttpText(599, null) // sentinel for network error
     }
 
-    // ────────────────────────────────────────────────────────────────────────
-    // Helpers
-    // ────────────────────────────────────────────────────────────────────────
-    /** Strong name normalization for PokeAPI resource keys. */
-    private fun normalize(name: String): String =
-        name.trim().lowercase()
-            .replace(' ', '-')    // "Mr Mime" -> "mr-mime"
-            .replace(":", "-")    // "Type: Null" -> "type-null"
-            .replace(".", "")     // "Mr. Mime" -> "mr-mime"
-            .replace("'", "")     // "Farfetch'd" -> "farfetchd"
-            .replace("é", "e")    // "Flabébé" -> "flabebe"
-            .replace("♀", "-f")   // "Nidoran♀" -> "nidoran-f"
-            .replace("♂", "-m")   // "Nidoran♂" -> "nidoran-m"
-
     fun labelsToSpawnTypeString(labels: List<String>): String {
         if (labels.isEmpty()) return ""
 
-        // Inline map of known label definitions
         val LABELS = mapOf(
+            "perfect"     to "Perfect",
             "shiny"       to "Shiny",
             "legendary"   to "Legendary",
             "mythical"    to "Mythical",
@@ -327,8 +351,7 @@ object Discord {
             "projectash"  to "Project Ash"
         )
 
-        // Normalise and deduplicate (case-insensitive)
-        val normalized = labels
+        val normalised = labels
             .mapNotNull { raw ->
                 val key = raw.trim().lowercase()
                 if (key.isEmpty()) return@mapNotNull null
@@ -336,12 +359,11 @@ object Discord {
             }
             .distinct()
 
-        // Ensure “Shiny” appears first if present
-        val shinyFirst = normalized.sortedWith(compareByDescending<String> {
-            it.equals("Shiny", ignoreCase = true)
-        })
+        val prioritised = normalised.sortedWith(
+            compareByDescending<String> { it.equals("Perfect", ignoreCase = true) }
+                .thenByDescending { it.equals("Shiny", ignoreCase = true) }
+        )
 
-        // Combine nicely for display
-        return shinyFirst.joinToString(" ")
+        return prioritised.joinToString(" ")
     }
 }

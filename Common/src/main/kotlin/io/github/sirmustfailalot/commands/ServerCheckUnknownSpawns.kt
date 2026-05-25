@@ -7,21 +7,21 @@ import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands.literal
 import net.minecraft.network.chat.Component
 
-object ServerDiscordEnabled : PAServerSubcommand {
+object ServerCheckUnknownSpawns : PAServerSubcommand {
     override fun build(): LiteralArgumentBuilder<CommandSourceStack> =
-        // usage: /projectash server DiscordEnabled <boolean>
-        literal("DiscordEnabled")
+        // usage: /projectash server Shiny <boolean>
+        literal("SpawnCommands")
             .then(literal("enabled")
                 .executes { ctx ->
-                    Config.setServerDiscordEnabled(true)
-                    ctx.source.sendSuccess({ Component.literal("[Project Ash] Discord announcements: ENABLED").withStyle(ChatFormatting.GREEN) }, true)
+                    Config.setCheckUnknownSpawns(true)
+                    ctx.source.sendSuccess({ Component.literal("[Project Ash] Server Checking Unknown Spawns: ENABLED").withStyle(ChatFormatting.GREEN) }, true)
                     1
                 }
             )
             .then(literal("disabled")
                 .executes { ctx ->
-                    Config.setServerDiscordEnabled(false)
-                    ctx.source.sendSuccess({ Component.literal("[Project Ash] Discord announcements: DISABLED").withStyle(ChatFormatting.RED) }, true)
+                    Config.setCheckUnknownSpawns(false)
+                    ctx.source.sendSuccess({ Component.literal("[Project Ash] Server Checking Unknown Spawns: DISABLED").withStyle(ChatFormatting.RED) }, true)
                     1
                 }
             )

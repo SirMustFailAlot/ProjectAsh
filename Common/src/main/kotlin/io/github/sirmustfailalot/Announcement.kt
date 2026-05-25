@@ -1,5 +1,6 @@
 package io.github.sirmustfailalot
 
+import io.github.sirmustfailalot.utility.FileLogger
 import net.minecraft.server.MinecraftServer
 import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.MutableComponent
@@ -14,6 +15,9 @@ data class LabelDef(
 )
 
 private val LABELS: Map<String, LabelDef> = mapOf(
+    "catchem!"  to LabelDef(display = "CatchEm!", color = 0xD35400),
+    "gotEm!"  to LabelDef(display = "GotEm!", color = 0x27AE60),
+    "perfect"  to LabelDef(display = "Perfect", color = 0x3498DB),
     "perfect"  to LabelDef(display = "Perfect", color = 0x3498DB),
     "shiny"        to LabelDef(display = "Shiny",       color = 0xF1C40F),
     "legendary"    to LabelDef(display = "Legendary",   color = 0x2ECC71),
@@ -40,19 +44,35 @@ private fun normalizeLabel(s: String): String =
 object Announcement {
     private val logger = LoggerFactory.getLogger("ProjectAsh")
 
-    fun spawn(announceType: String, announcePlayers: List<String>, server: MinecraftServer?, dimension: String, playerName: String?, spawnType: List<String>, species: String, posValue: String) {
+    fun spawn(announceSource: String, announceTarget: String, catchEmAllPlayers: List<String>, announcePlayers: List<String>, server: MinecraftServer?, dimension: String, playerName: String?, spawnType: List<String>, species: String, posValue: String) {
         val message = if (dimension == "Overworld") {
-            renderLabeledMessage(
-                labelsInOrder = spawnType,
-                messageTail = "$species spawned near $playerName at $posValue"
-            )
+            if (announceSource === "Unknown") {
+                renderLabeledMessage(
+                    labelsInOrder = spawnType,
+                    messageTail = "$species has somehow spawned near $playerName at $posValue"
+                )
+            } else {
+                renderLabeledMessage(
+                    labelsInOrder = spawnType,
+                    messageTail = "$species spawned near $playerName at $posValue"
+                )
+            }
         } else {
-            renderLabeledMessage(
-                labelsInOrder = spawnType,
-                messageTail = "$species spawned in the $dimension near $playerName at $posValue"
-            )
+            if (announceSource === "Unknown") {
+                renderLabeledMessage(
+                    labelsInOrder = spawnType,
+                    messageTail = "$species has somehow spawned in the $dimension, near $playerName at $posValue"
+                )
+            } else {
+                renderLabeledMessage(
+                    labelsInOrder = spawnType,
+                    messageTail = "$species spawned in the $dimension, near $playerName at $posValue"
+                )
+            }
         }
-        if (announceType == "Server") {
+
+        val nonCatchEmAllPlayers = announcePlayers.filter { it !in catchEmAllPlayers }
+        if (announceTarget == "Server") {
             val ingameEnabled = Config.data.server.ingameEnabled
             if (ingameEnabled) {
                 server.let { server ->
@@ -61,17 +81,19 @@ object Announcement {
                     }
                 }
             }
-        } else if (announceType == "Players") {
-            if (server != null) sendMessageToPlayers(server, message, announcePlayers)
+        } else if (announceTarget == "Players" && announceSource != "Unknown") {
+            if (server != null) sendMessageToPlayers(server, message, nonCatchEmAllPlayers)
         }
+        val uncaughtMessage = prefixRenderLabeledMessage("catchem!", message=message)
+        if (server != null) sendMessageToPlayers(server=server, message = uncaughtMessage, names=catchEmAllPlayers)
     }
 
-    fun capture(announceType: String, announcePlayers: List<String>, server: MinecraftServer?, playerName: String?, spawnType: List<String>, species: String) {
+    fun capture(announceTarget: String, announcePlayers: List<String>, server: MinecraftServer?, playerName: String?, spawnType: List<String>, species: String) {
         val message = renderLabeledMessage(
             labelsInOrder = spawnType,
             messageTail = "$species was caught by $playerName!")
-
-        if (announceType == "Server") {
+        FileLogger.log(message.string)
+        if (announceTarget == "Server") {
             val ingameEnabled = Config.data.server.ingameEnabled
             if (ingameEnabled) {
                 server.let { server ->
@@ -80,17 +102,17 @@ object Announcement {
                     }
                 }
             }
-        } else if (announceType == "Players") {
+        } else if (announceTarget == "Players") {
             if (server != null) sendMessageToPlayers(server, message, announcePlayers)
         }
     }
 
-    fun fainted(announceType: String, announcePlayers: List<String>, server: MinecraftServer?, spawnType: List<String>, species: String) {
+    fun fainted(announceTarget: String, announcePlayers: List<String>, server: MinecraftServer?, spawnType: List<String>, species: String) {
         val message = renderLabeledMessage(
             labelsInOrder = spawnType,
             messageTail = "$species fainted! Well... Back to it then! :(")
-
-        if (announceType == "Server") {
+        FileLogger.log(message.string)
+        if (announceTarget == "Server") {
             val ingameEnabled = Config.data.server.ingameEnabled
             if (ingameEnabled) {
                 server.let { server ->
@@ -99,17 +121,17 @@ object Announcement {
                     }
                 }
             }
-        } else if (announceType == "Players") {
+        } else if (announceTarget == "Players") {
             if (server != null) sendMessageToPlayers(server, message, announcePlayers)
         }
     }
 
-    fun removed(announceType: String, announcePlayers: List<String>, server: MinecraftServer?, spawnType: List<String>, species: String) {
+    fun removed(announceTarget: String, announcePlayers: List<String>, server: MinecraftServer?, spawnType: List<String>, species: String) {
         val message = renderLabeledMessage(
             labelsInOrder = spawnType,
             messageTail = "$species has despawned!")
-
-        if (announceType == "Server") {
+        FileLogger.log(message.string)
+        if (announceTarget == "Server") {
             val ingameEnabled = Config.data.server.ingameEnabled
             if (ingameEnabled) {
                 server.let { server ->
@@ -118,7 +140,7 @@ object Announcement {
                     }
                 }
             }
-        } else if (announceType == "Players") {
+        } else if (announceTarget == "Players") {
             if (server != null) sendMessageToPlayers(server, message, announcePlayers)
         }
     }
@@ -127,7 +149,7 @@ object Announcement {
         val message = renderLabeledMessage(
             labelsInOrder = hatchType,
             messageTail = "$species has been hatched by $playerName!")
-
+        FileLogger.log(message.string)
         val ingameEnabled = Config.data.server.ingameEnabled
         if (ingameEnabled) {
             server.let { server ->
@@ -153,12 +175,28 @@ object Announcement {
         val message = renderLabeledMessage(
             labelsInOrder = listOf("ProjectAsh"),
             messageTail = "Failed to send discord webhook!")
-
+        FileLogger.log(message.string)
         server.let { server ->
             server?.playerList?.players?.forEach { p ->
                 p.sendSystemMessage(message)
             }
         }
+    }
+
+    fun prefixRenderLabeledMessage(
+        prefix: String,
+        message: MutableComponent
+    ): MutableComponent {
+        val root = Component.empty()
+        val labelComps = prefix
+            .map { prefix }
+            .distinct()
+            .mapNotNull { key -> LABELS[key]?.let { def -> colored(def.display, def.color, def.bold) } }
+
+        root.append(labelComps.first())
+        root.append(white(" "))
+        root.append(message)
+        return root
     }
 
     fun renderLabeledMessage(
@@ -182,7 +220,7 @@ object Announcement {
                 root.append(white(separator))
                 root.append(labelComps[i])
             }
-            root.append(white(" ")) // space before main message
+            root.append(white(" "))
         }
 
         // 3) Append the message tail

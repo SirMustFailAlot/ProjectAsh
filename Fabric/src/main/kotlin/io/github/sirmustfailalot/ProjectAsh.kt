@@ -1,6 +1,9 @@
 package io.github.sirmustfailalot
 
+
 import net.fabricmc.api.ModInitializer
+import io.github.sirmustfailalot.battle.TrainerBattleTracker
+import io.github.sirmustfailalot.utility.FabricLoggerImpl
 
 // Cobblemon
 import com.cobblemon.mod.common.api.Priority
@@ -17,9 +20,11 @@ import io.github.sirmustfailalot.projectash.commands.ProjectAshCommand
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
 import io.github.sirmustfailalot.hatching.HatchAnnounce
+import io.github.sirmustfailalot.utility.FileLogger
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.server.level.ServerPlayer
+import java.nio.file.Files
 
 interface PASubcommand {
     /** Return the literal node to hang under /projectash */
@@ -40,6 +45,9 @@ object ProjectAsh : ModInitializer {
             server = null
         }
 
+        FileLogger.platformImpl = FabricLoggerImpl()
+        FileLogger.log("Project Ash Initialized")
+
         CommandRegistrationCallback.EVENT.register { dispatcher, _, _ ->
             ProjectAshCommand.register(dispatcher)
         }
@@ -53,7 +61,14 @@ object ProjectAsh : ModInitializer {
 
         CobblemonEvents.POKEMON_FAINTED.subscribe(Priority.LOWEST, SpawnTracker::onFainted)
 
-        // 4) Vanilla removal (to detect natural despawns)
+        ServerEntityEvents.ENTITY_LOAD.register { entity, world ->
+            if (entity is PokemonEntity) {
+                val spawnCause = if (entity.spawnCause == null || entity.spawnCause?.javaClass?.simpleName?.contains("Command", ignoreCase = true)?: false) { true } else { false }
+                if (spawnCause) {
+                    SpawnTracker.onSpawnUnknown(entity)
+                }
+            }
+        }
         ServerEntityEvents.ENTITY_UNLOAD.register { entity, _world ->
             if (entity is PokemonEntity) {
                 SpawnTracker.onRemoved(entity, entity.removalReason)
@@ -61,5 +76,13 @@ object ProjectAsh : ModInitializer {
         }
 
         CobblemonEvents.HATCH_EGG_POST.subscribe(Priority.LOWEST, HatchAnnounce::onHatch)
+
+        CobblemonEvents.BATTLE_STARTED_POST.subscribe { event ->
+            TrainerBattleTracker.onBattleStarted(event)
+        }
+
+        CobblemonEvents.BATTLE_VICTORY.subscribe { event ->
+            TrainerBattleTracker.onBattleCompleted(event)
+        }
     }
 }

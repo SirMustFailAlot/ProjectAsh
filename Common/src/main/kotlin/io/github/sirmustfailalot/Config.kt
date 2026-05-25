@@ -24,12 +24,14 @@ data class ServerRule(
     var discordEnabled: Boolean = true,
     var discordWebhook: String = "https://your.webhook.url/here",
     var discordThumbnails: Boolean = true,
+    var checkUnknownSpawns: Boolean = false,
     var shinyCheck: Boolean = true,
     var labelCheck: List<String> = listOf("legendary", "ultra_beast", "mythical", "paradox"),
     var specialCheck: List<SpecialRule> = emptyList()
 )
 
 data class PlayerRule(
+    var catchEmAllMode: Boolean = false,
     var enabled: Boolean = true,
     var specialCheck: MutableList<SpecialRule> = mutableListOf()
 )
@@ -70,6 +72,7 @@ object Config {
     fun setServerDiscordWebhook(url: String) = write { it.server.discordWebhook = url }
     fun setServerDiscordThumbnails(enabled: Boolean) = write { it.server.discordThumbnails = enabled }
     fun setServerShinyCheck(enabled: Boolean) = write { it.server.shinyCheck = enabled }
+    fun setCheckUnknownSpawns(enabled: Boolean) = write { it.server.checkUnknownSpawns = enabled }
 
     fun addLabelCheck(label: String): Boolean {
         val normalised = label.trim().lowercase()
@@ -148,6 +151,22 @@ object Config {
         }
 
         return playerRule
+    }
+
+    fun toggleCatchEmAllMode(playerName: String, toggle: Boolean): Boolean {
+        val p = ensurePlayer(playerName)
+        write {
+            it.player[playerName]!!.catchEmAllMode = toggle
+        }
+        return true
+    }
+
+    fun getCatchEmAllPlayers(): List<String> {
+        return data.player.entries
+            .asSequence()
+            .filter { (_, rule) -> rule.catchEmAllMode }
+            .map { (name, _) -> name }
+            .toList()
     }
 
     fun addPlayerSpecialRule(playerName: String, species: String, shinyOnly: Boolean): Boolean {
