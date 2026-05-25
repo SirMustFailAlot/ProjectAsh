@@ -31,11 +31,12 @@ object PlayerCatchEmAll : PAPlayerSubcommand {
                      1
                 }
             )
-            .then(literal("disabled"))
+            .then(literal("disabled")
                 .executes { ctx ->
                     val player = executingPlayerNameOrFail(ctx) ?: return@executes 0
                     toggleCatchEmAllMode(player, false)
                     ctx.source.sendSuccess({ Component.literal("[Project Ash] CatchEmAll: DISABLED").withStyle(ChatFormatting.RED) }, false)
                     1
                 }
+            )
 }
