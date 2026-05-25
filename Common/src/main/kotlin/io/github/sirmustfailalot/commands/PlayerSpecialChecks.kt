@@ -13,8 +13,6 @@ import io.github.sirmustfailalot.Config
 import io.github.sirmustfailalot.Config.getPlayerSpecialRules
 import io.github.sirmustfailalot.Config.addPlayerSpecialRule
 import io.github.sirmustfailalot.Config.removePlayerSpecialRule
-import net.minecraft.ChatFormatting
-import java.util.function.Supplier
 
 object PlayerSpecialChecks : PAPlayerSubcommand {
 
@@ -38,7 +36,7 @@ object PlayerSpecialChecks : PAPlayerSubcommand {
         return try {
             ctx.source.playerOrException.scoreboardName
         } catch (_: Exception) {
-            ctx.source.sendSuccess({ Component.literal( "[Project Ash] This command must be run by a player in-game.") }, false)
+            ctx.source.sendFailure(Component.literal("[Project Ash] This command must be run by a player in-game."))
             null
         }
     }
@@ -50,8 +48,7 @@ object PlayerSpecialChecks : PAPlayerSubcommand {
                 .executes { ctx ->
                     val player = executingPlayerNameOrFail(ctx) ?: return@executes 0
                     Config.setPlayerSpecialCheck(player, true)
-                    ctx.source.sendSuccess({ Component.literal("[Project Ash] Player Special Checks: ENABLED").withStyle(
-                        ChatFormatting.GREEN) }, false)
+                    ctx.source.sendSuccess({ Component.literal("[Project Ash] Player Special Checks: ENABLED") }, true)
                     1
                 }
                 )
@@ -59,7 +56,7 @@ object PlayerSpecialChecks : PAPlayerSubcommand {
                 .executes { ctx ->
                     val player = executingPlayerNameOrFail(ctx) ?: return@executes 0
                     Config.setPlayerSpecialCheck(player, false)
-                    ctx.source.sendSuccess({ Component.literal("[Project Ash] Player Special Checks: DISABLED").withStyle(ChatFormatting.RED) }, false)
+                    ctx.source.sendSuccess({ Component.literal("[Project Ash] Player Special Checks: DISABLED") }, true)
                     1
                 }
                 )
@@ -71,7 +68,7 @@ object PlayerSpecialChecks : PAPlayerSubcommand {
                     val rules = getPlayerSpecialRules(player)
                     if (rules.isEmpty()) {
                         ctx.source.sendSuccess(
-                            { Component.literal("[Project Ash] Player ($player) special targets: (none)") }, false
+                            { Component.literal("[Project Ash] Player ($player) special targets: (none)") }, true
                         )
                         1
                     } else {
@@ -81,7 +78,7 @@ object PlayerSpecialChecks : PAPlayerSubcommand {
                                 appendLine("  ${i + 1}. ${r.speciesName}  shinyOnly=${r.shinyCheck}")
                             }
                         }
-                        ctx.source.sendSuccess({ Component.literal(lines.trimEnd()) }, false)
+                        ctx.source.sendSuccess({ Component.literal(lines.trimEnd()) }, true)
                         1
                     }
                 }
@@ -92,10 +89,10 @@ object PlayerSpecialChecks : PAPlayerSubcommand {
                     val player = executingPlayerNameOrFail(ctx) ?: return@executes 0
                     val clearRules = Config.clearPlayerSpecialRules(player)
                     if (clearRules) {
-                        ctx.source.sendSuccess({ Component.literal("[Project Ash] Player Specials Cleared!") }, false)
+                        ctx.source.sendSuccess({ Component.literal("[Project Ash] Player Specials Cleared!") }, true)
                         1
                     } else {
-                        ctx.source.sendSuccess({ Component.literal("[Project Ash] Player Specials Failed to Clear!") }, false)
+                        ctx.source.sendFailure(Component.literal("[Project Ash] Player Specials Failed to Clear!"))
                         0
                     }
                 })
@@ -114,13 +111,11 @@ object PlayerSpecialChecks : PAPlayerSubcommand {
                             if (addPlayerSpecialRule(player, species = species, shinyOnly)) {
                                 ctx.source.sendSuccess({
                                     Component.literal("[Project Ash] Added for $player: ${species.lowercase()}  shinyOnly=$shinyOnly")
-                                }, false)
+                                }, true)
                                 1
                             } else {
-                                ctx.source.sendSuccess({
-                                    Component.literal("[Project Ash] No change: already present or invalid.")
-                                }, false)
-                                1
+                                ctx.source.sendFailure(Component.literal("[Project Ash] No change: already present or invalid."))
+                                0
                             }
                         }
                     )
@@ -132,13 +127,11 @@ object PlayerSpecialChecks : PAPlayerSubcommand {
                         if (addPlayerSpecialRule(player, species = species, shinyOnly)) {
                             ctx.source.sendSuccess({
                                 Component.literal("[Project Ash] Added for $player: ${species.lowercase()}  shinyOnly=$shinyOnly (default)")
-                            }, false)
+                            }, true)
                             1
                         } else {
-                            ctx.source.sendSuccess({
-                                Component.literal("[Project Ash] No change: already present or invalid.")
-                            }, false)
-                            1
+                            ctx.source.sendFailure(Component.literal("[Project Ash] No change: already present or invalid."))
+                            0
                         }
                     }
                 )
@@ -157,13 +150,11 @@ object PlayerSpecialChecks : PAPlayerSubcommand {
                             if (removePlayerSpecialRule(player, species = species, shinyOnly)) {
                                 ctx.source.sendSuccess({
                                     Component.literal("[Project Ash] Removed for $player: ${species.lowercase()}  shinyOnly=$shinyOnly")
-                                }, false)
+                                }, true)
                                 1
                             } else {
-                                ctx.source.sendSuccess({
-                                    Component.literal("[Project Ash] No change: not present or invalid.")
-                                }, false)
-                                1
+                                ctx.source.sendFailure(Component.literal("[Project Ash] No change: not present or invalid."))
+                                0
                             }
                         }
                     )
@@ -175,10 +166,10 @@ object PlayerSpecialChecks : PAPlayerSubcommand {
                         if (removePlayerSpecialRule(player, species = species, shinyOnly)) {
                             ctx.source.sendSuccess({
                                 Component.literal("[Project Ash] Removed for $player: ${species.lowercase()}  shinyOnly=$shinyOnly (default)")
-                            }, false)
+                            }, true)
                             1
                         } else {
-                            ctx.source.sendSuccess({ Component.literal("[Project Ash] No change: not present or invalid.") }, false)
+                            ctx.source.sendFailure(Component.literal("[Project Ash] No change: not present or invalid."))
                             0
                         }
                     }

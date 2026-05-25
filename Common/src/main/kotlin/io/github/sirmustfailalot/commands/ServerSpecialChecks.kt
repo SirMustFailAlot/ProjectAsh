@@ -37,7 +37,7 @@ object ServerSpecialChecks : PAServerSubcommand {
             .then(literal("Check").executes { ctx ->
                 val rules = getServerSpecialRules()
                 if (rules.isEmpty()) {
-                    ctx.source.sendSuccess({ Component.literal("Server special targets: (none)") }, false)
+                    ctx.source.sendSuccess({ Component.literal("Server special targets: (none)") }, true)
                     1
                 } else {
                     val lines = buildString {
@@ -46,7 +46,7 @@ object ServerSpecialChecks : PAServerSubcommand {
                             appendLine("  ${i + 1}. ${r.speciesName}  shinyOnly=${r.shinyCheck}")
                         }
                     }
-                    ctx.source.sendSuccess({ Component.literal(lines.trimEnd()) }, false)
+                    ctx.source.sendSuccess({ Component.literal(lines.trimEnd()) }, true)
                     1
                 }
             })

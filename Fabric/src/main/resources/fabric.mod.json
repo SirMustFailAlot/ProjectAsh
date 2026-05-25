@@ -25,6 +25,9 @@
         }
       ]
     },
+    "mixins": [
+      "project_ash.mixins.json"
+    ],
   
     "depends": {
       "fabricloader": "*",

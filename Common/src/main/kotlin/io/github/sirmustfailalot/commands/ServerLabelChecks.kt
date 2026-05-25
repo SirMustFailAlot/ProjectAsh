@@ -34,7 +34,7 @@ object ServerLabelChecks : PAServerSubcommand {
                     .executes { ctx ->
                         val labels = Config.getLabelCheck()
                         val pretty = if (labels.isEmpty()) "(none)" else labels.joinToString(", ")
-                        ctx.source.sendSuccess({ Component.literal("[Project Ash] Current Server Labels: $pretty") }, false)
+                        ctx.source.sendSuccess({ Component.literal("[Project Ash] Current Server Labels: $pretty") }, true)
                         1
                     }
             )
