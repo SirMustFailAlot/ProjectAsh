@@ -18,18 +18,10 @@ import org.slf4j.LoggerFactory
 // Commands
 import io.github.sirmustfailalot.projectash.commands.ProjectAshCommand
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback
-import com.mojang.brigadier.builder.LiteralArgumentBuilder
 import io.github.sirmustfailalot.hatching.HatchAnnounce
 import io.github.sirmustfailalot.utility.FileLogger
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents
-import net.minecraft.commands.CommandSourceStack
 import net.minecraft.server.level.ServerPlayer
-import java.nio.file.Files
-
-interface PASubcommand {
-    /** Return the literal node to hang under /projectash */
-    fun build(): LiteralArgumentBuilder<CommandSourceStack>
-}
 
 object ProjectAsh : ModInitializer {
     private val logger = LoggerFactory.getLogger("project-ash")
@@ -52,30 +44,36 @@ object ProjectAsh : ModInitializer {
             ProjectAshCommand.register(dispatcher)
         }
 
-        CobblemonEvents.POKEMON_ENTITY_SPAWN.subscribe(Priority.LOWEST, SpawnTracker::onSpawn)
-        CobblemonEvents.POKEMON_CAPTURED.subscribe { ev ->
-            val player: ServerPlayer = ev.player
-            val pokemon = ev.pokemon
-            SpawnTracker.onCapture(player=player, pokemon=pokemon)
+        // Spawning and Loading Pokemon
+        CobblemonEvents.POKEMON_ENTITY_SPAWN.subscribe{ ev ->
+            val spawnPokemonEntity = ev.entity
+            SpawnTracker.onSpawn(pokemonEntity = spawnPokemonEntity, spawnSource = "Known")
         }
-
-        CobblemonEvents.POKEMON_FAINTED.subscribe(Priority.LOWEST, SpawnTracker::onFainted)
-
-        ServerEntityEvents.ENTITY_LOAD.register { entity, world ->
-            if (entity is PokemonEntity) {
-                val spawnCause = if (entity.spawnCause == null || entity.spawnCause?.javaClass?.simpleName?.contains("Command", ignoreCase = true)?: false) { true } else { false }
+        ServerEntityEvents.ENTITY_LOAD.register { loadPokemonEntity, _ ->
+            if (loadPokemonEntity is PokemonEntity && Config.data.server.checkUnknownSpawns) {
+                val spawnCause = loadPokemonEntity.spawnCause == null || loadPokemonEntity.spawnCause?.javaClass?.simpleName?.contains("Command", ignoreCase = true)?: false
                 if (spawnCause) {
-                    SpawnTracker.onSpawnUnknown(entity)
+                    SpawnTracker.onSpawn(pokemonEntity = loadPokemonEntity, spawnSource = "Unknown")
                 }
             }
         }
-        ServerEntityEvents.ENTITY_UNLOAD.register { entity, _world ->
-            if (entity is PokemonEntity) {
-                SpawnTracker.onRemoved(entity, entity.removalReason)
-            }
-        }
 
-        CobblemonEvents.HATCH_EGG_POST.subscribe(Priority.LOWEST, HatchAnnounce::onHatch)
+//        CobblemonEvents.POKEMON_CAPTURED.subscribe { ev ->
+//            val player: ServerPlayer = ev.player
+//            val pokemon = ev.pokemon
+//            SpawnTracker.onCapture(player=player, pokemon=pokemon)
+//        }
+//
+//        CobblemonEvents.POKEMON_FAINTED.subscribe(Priority.LOWEST, SpawnTracker::onFainted)
+//
+//
+//        ServerEntityEvents.ENTITY_UNLOAD.register { entity, _ ->
+//            if (entity is PokemonEntity) {
+//                SpawnTracker.onRemoved(entity, entity.removalReason)
+//            }
+//        }
+//
+//        CobblemonEvents.HATCH_EGG_POST.subscribe(Priority.LOWEST, HatchAnnounce::onHatch)
 
         CobblemonEvents.BATTLE_STARTED_POST.subscribe { event ->
             TrainerBattleTracker.onBattleStarted(event)

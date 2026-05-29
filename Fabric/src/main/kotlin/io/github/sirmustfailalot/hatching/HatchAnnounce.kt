@@ -16,15 +16,15 @@ import kotlin.text.contains
 
 object HatchAnnounce {
     private val logger = LoggerFactory.getLogger("project-ash")
-    fun onHatch(context: HatchEggEvent.Post) {
-        val cachedProfile = ProjectAsh.server?.profileCache?.get(context.player.uuid)?.getOrNull()
-        val playerName = cachedProfile?.name
-            ?: ProjectAsh.server?.playerList?.getPlayer(context.player.uuid)?.name?.string
-            ?: "Unknown Player"
-
-        val pokeGlance = PokemonUtility.quickGlance(pokemonEntity = context.pokemon.entity!!)
-
-        Announcement.hatched(server = ProjectAsh.server, hatchType = pokeGlance.hatchingLabels, species = pokeGlance.speciesWithForm, playerName = playerName)
-        Discord.announcement(eventType="Hatched", server=ProjectAsh.server, playerName=playerName, spawnType=pokeGlance.hatchingLabels, species=pokeGlance.species, speciesPlusForm=pokeGlance.speciesWithForm, thumbnailURL = pokeGlance.thumbnail)
-    }
+//    fun onHatch(context: HatchEggEvent.Post) {
+//        val cachedProfile = ProjectAsh.server?.profileCache?.get(context.player.uuid)?.getOrNull()
+//        val playerName = cachedProfile?.name
+//            ?: ProjectAsh.server?.playerList?.getPlayer(context.player.uuid)?.name?.string
+//            ?: "Unknown Player"
+//
+//        val pokeGlance = PokemonUtility.quickGlance(pokemonEntity = context.pokemon.entity!!)
+//
+//        Announcement.hatched(server = ProjectAsh.server, hatchType = pokeGlance.hatchingLabels, species = pokeGlance.speciesWithForm, playerName = playerName)
+//        Discord.announcement(eventType="Hatched", server=ProjectAsh.server, playerName=playerName, spawnType=pokeGlance.hatchingLabels, species=pokeGlance.species, speciesPlusForm=pokeGlance.speciesWithForm, thumbnailURL = pokeGlance.thumbnail)
+//    }
 }

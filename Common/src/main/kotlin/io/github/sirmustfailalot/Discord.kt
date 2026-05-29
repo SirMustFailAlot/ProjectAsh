@@ -69,15 +69,23 @@ object Discord {
 
     fun spawn(
         server: MinecraftServer?,
-        announceSource: String,
-        dimension: String,
-        playerName: String?,
-        spawnType: List<String>,
-        shiny: Boolean,
-        species: String,
-        speciesPlusForm: String,
-        posValue: String,
-        thumbnailURL: String
+
+        // Spawn and Species Information
+        spawnSource: String,
+        spawnDimension: String,
+        spawnPos: String,
+        spawnClosestPlayer: String,
+        speciesWithForm: String,
+
+        // Pokémon Aspects
+        hasLabels: List<*>,
+        isShiny: Boolean,
+
+        // Announcement Checks
+        isServerAnnouncement: Boolean,
+        isServerSpecial: Boolean,
+        hasServerLabel: String,
+        thumbnail: String
     ) {
         io.execute {
             try {
@@ -90,31 +98,31 @@ object Discord {
                         return@execute
                     }
 
-                    val spawnTypeString = labelsToSpawnTypeString(spawnType)
+                    val pokemonLabels = if (isShiny) { listOf("shiny") + hasServerLabel } else { hasServerLabel }
 
-                    val title = (if (shiny) "✨ " else "") + "$spawnTypeString — $speciesPlusForm"
+                    val title = (if (isShiny) "✨ " else "") + "$pokemonLabels — $speciesWithForm"
 
-                    val fields = if (announceSource === "Unknown") {
+                    val fields = if (spawnSource === "Unknown") {
                         listOf(
                             EmbedField("Spawn Source", "Unknown"),
-                            EmbedField("Dimension", dimension),
-                            EmbedField("Closest Player", playerName ?: "Unknown"),
-                            EmbedField("Position", "`$posValue`")
+                            EmbedField("Dimension", spawnDimension),
+                            EmbedField("Closest Player", spawnClosestPlayer ?: "Unknown"),
+                            EmbedField("Position", "`$spawnPos`")
                         )
                     } else {
                         listOf(
-                            EmbedField("Dimension", dimension),
-                            EmbedField("Closest Player", playerName ?: "Unknown"),
-                            EmbedField("Position", "`$posValue`")
+                            EmbedField("Dimension", spawnDimension),
+                            EmbedField("Closest Player", spawnClosestPlayer ?: "Unknown"),
+                            EmbedField("Position", "`$spawnPos`")
                         )
                     }
 
                     val embed = Embed(
                         title = title,
-                        color = getEmbedColour(spawnType),
+                        color = getEmbedColour(pokemonLabels as List<String>),
                         fields = fields,
-                        thumbnail = if (Thumbnails && thumbnailURL != null)
-                            mapOf("url" to thumbnailURL)
+                        thumbnail = if (Thumbnails)
+                            mapOf("url" to thumbnail)
                         else
                             null,
                         footer = mapOf("text" to "ProjectAsh"),
@@ -130,74 +138,74 @@ object Discord {
         }
     }
 
-    fun announcement(
-        eventType: String,
-        server: MinecraftServer?,
-        playerName: String? = null,
-        spawnType: List<String>,
-        species: String,
-        speciesPlusForm: String,
-        thumbnailURL: String
-    ) {
-        io.execute {
-            try {
-                val webhookEnabled = Config.data.server.discordEnabled
-                val Thumbnails = Config.data.server.discordThumbnails
-                if (webhookEnabled) {
-                    val webhook = Config.data.server.discordWebhook
-                    if (webhook.isNullOrBlank() || webhook == "https://your.webhook.url/here") {
-                        Announcement.discordWebhookFail(server)
-                        return@execute
-                    }
-
-                    val spawnTypeString = labelsToSpawnTypeString(spawnType)
-
-                    val title = if (eventType == "Captured") {
-                        "✅ $eventType $speciesPlusForm!"
-                    } else if (eventType == "Hatched") {
-                        "🐣 $speciesPlusForm $eventType!"
-                    } else {
-                        "❌ $speciesPlusForm $eventType!"
-                    }
-                    val fields = if (eventType == "Captured")
-                    {
-                        listOf(
-                            EmbedField("Spawn Type", spawnTypeString),
-                            EmbedField("Player", playerName ?: "Unknown"))
-                    } else if (eventType == "Hatched")
-                    {
-                        listOf(
-                            EmbedField("Hatch Type", spawnTypeString),
-                            EmbedField("Player", playerName ?: "Unknown"))
-                    }else {
-                        listOf(
-                            EmbedField("Spawn Type", spawnTypeString))}
-
-                    val embed = Embed(
-                        title = title,
-                        color = getEmbedColour(spawnType),
-                        fields = fields,
-                        thumbnail = if ((eventType == "Captured" || eventType == "Hatched") && Thumbnails && thumbnailURL != null)
-                        {mapOf("url" to thumbnailURL)}
-                        else {
-                            if (eventType == "Fainted")
-                            {mapOf("url" to "https://s-media-cache-ak0.pinimg.com/600x315/b1/20/08/b120087f3a904bda147251beaedf5755.jpg")}
-                            else if (eventType == "Despawned")
-                            {mapOf("url" to "https://i.pinimg.com/originals/a9/48/e0/a948e0a1af81e162fe766faeeba3bc51.jpg")}
-                            else {null}
-                        },
-                        footer = mapOf("text" to "ProjectAsh"),
-                        timestamp = Instant.now().toString()
-                    )
-
-                    val body = gson.toJson(WebhookPayload(embeds = listOf(embed)))
-                    sendMessage(webhook, body)
-                }
-            } catch (t: Throwable) {
-                logger.info("Project Ash: Discord send() error: ${t.message}")
-            }
-        }
-    }
+//    fun announcement(
+//        eventType: String,
+//        server: MinecraftServer?,
+//        playerName: String? = null,
+//        spawnType: List<String>,
+//        species: String,
+//        speciesPlusForm: String,
+//        thumbnailURL: String
+//    ) {
+//        io.execute {
+//            try {
+//                val webhookEnabled = Config.data.server.discordEnabled
+//                val Thumbnails = Config.data.server.discordThumbnails
+//                if (webhookEnabled) {
+//                    val webhook = Config.data.server.discordWebhook
+//                    if (webhook.isNullOrBlank() || webhook == "https://your.webhook.url/here") {
+//                        Announcement.discordWebhookFail(server)
+//                        return@execute
+//                    }
+//
+//                    val spawnTypeString = labelsToSpawnTypeString(spawnType)
+//
+//                    val title = if (eventType == "Captured") {
+//                        "✅ $eventType $speciesPlusForm!"
+//                    } else if (eventType == "Hatched") {
+//                        "🐣 $speciesPlusForm $eventType!"
+//                    } else {
+//                        "❌ $speciesPlusForm $eventType!"
+//                    }
+//                    val fields = if (eventType == "Captured")
+//                    {
+//                        listOf(
+//                            EmbedField("Spawn Type", spawnTypeString),
+//                            EmbedField("Player", playerName ?: "Unknown"))
+//                    } else if (eventType == "Hatched")
+//                    {
+//                        listOf(
+//                            EmbedField("Hatch Type", spawnTypeString),
+//                            EmbedField("Player", playerName ?: "Unknown"))
+//                    }else {
+//                        listOf(
+//                            EmbedField("Spawn Type", spawnTypeString))}
+//
+//                    val embed = Embed(
+//                        title = title,
+//                        color = getEmbedColour(spawnType),
+//                        fields = fields,
+//                        thumbnail = if ((eventType == "Captured" || eventType == "Hatched") && Thumbnails && thumbnailURL != null)
+//                        {mapOf("url" to thumbnailURL)}
+//                        else {
+//                            if (eventType == "Fainted")
+//                            {mapOf("url" to "https://s-media-cache-ak0.pinimg.com/600x315/b1/20/08/b120087f3a904bda147251beaedf5755.jpg")}
+//                            else if (eventType == "Despawned")
+//                            {mapOf("url" to "https://i.pinimg.com/originals/a9/48/e0/a948e0a1af81e162fe766faeeba3bc51.jpg")}
+//                            else {null}
+//                        },
+//                        footer = mapOf("text" to "ProjectAsh"),
+//                        timestamp = Instant.now().toString()
+//                    )
+//
+//                    val body = gson.toJson(WebhookPayload(embeds = listOf(embed)))
+//                    sendMessage(webhook, body)
+//                }
+//            } catch (t: Throwable) {
+//                logger.info("Project Ash: Discord send() error: ${t.message}")
+//            }
+//        }
+//    }
 
     fun battleFinished(
         server: MinecraftServer?,
