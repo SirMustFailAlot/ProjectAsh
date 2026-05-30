@@ -6,22 +6,15 @@ plugins {
 archivesBaseName = "${mod_name}-common-${minecraft_version}"
 
 architectury {
-    common(rootProject.mod_id)
-}
-
-loom {
-    // Generates the refmap settings correctly for common architectures
-    generateModProvidedJavadoc = false
+    common("fabric")
 }
 
 dependencies {
-    compileOnly group:'org.spongepowered', name:'mixin', version:'0.8.5'
     implementation group: 'com.google.code.findbugs', name: 'jsr305', version: '3.0.1'
     implementation("org.json:json:20230618")
 
     // Cobblemon Fabric is bundled for common compilation tasks if needed,
-    // or you can reference its common API if available.
-    compileOnly "com.cobblemon:fabric:${project.cobblemon_version}"
+    modCompileOnly "com.cobblemon:mod:${cobblemon_version}"
 }
 
 publishing {

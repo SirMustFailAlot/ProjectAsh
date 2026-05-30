@@ -26,4 +26,5 @@ plugins {
 }
 
 rootProject.name = 'ProjectAsh'
-include("Common", "Fabric")
+include("Common")
+include("Fabric")

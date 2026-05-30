@@ -14,13 +14,9 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents
 
-// General Logger
-import org.slf4j.LoggerFactory
-
-object ProjectAsh : ModInitializer {
-    private val logger = LoggerFactory.getLogger("ProjectAsh")
+object ProjectAshFabric : ModInitializer {
     override fun onInitialize() {
-        logger.info("Project Ash Initialising..... *Taps Mic*..... is this thing on?..... Boogies.")
+        ProjectAsh.initialise()
 
         // Load the Minecraft Server Variable
         ServerLifecycleEvents.SERVER_STARTED.register { srv -> EventSubscribers.server = srv}

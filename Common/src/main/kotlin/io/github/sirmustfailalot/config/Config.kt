@@ -253,7 +253,7 @@ object Config {
 
     /** Load default sprites JSON from resources into a Map<String, SpriteEntry>. */
     private fun loadSpritesFromResource(): MutableMap<String, SpriteEntry> {
-        val path = "projectash/sprites.json" // src/main/resources/projectash/sprites.json
+        val path = "assets/projectash/sprites.json" // src/main/resources/projectash/sprites.json
         val stream = javaClass.classLoader.getResourceAsStream(path)
             ?: return mutableMapOf() // resource missing -> empty
 

@@ -22,8 +22,6 @@ dependencies {
     modImplementation "net.fabricmc.fabric-api:fabric-api:$fabric_version"
     modImplementation "net.fabricmc:fabric-language-kotlin:$fabric_kotlin_version"
     modImplementation "com.cobblemon:fabric:${project.cobblemon_version}"
-
-    // Architectury API for Fabric
     modApi "dev.architectury:architectury-fabric:${rootProject.architectury_api_version}"
 
     common project(path: ":Common", configuration: "namedElements")
@@ -35,6 +33,14 @@ processResources {
 
     filesMatching("fabric.mod.json") {
         expand "version": project.version
+    }
+}
+
+tasks.named("jar") {
+    from {
+        configurations.shadowCommon.collect {
+            it.isDirectory() ? it : zipTree(it)
+        }
     }
 }
 
