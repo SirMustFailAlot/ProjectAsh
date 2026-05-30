@@ -1,4 +1,4 @@
-package io.github.sirmustfailalot
+package io.github.sirmustfailalot.projectash.config
 
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
