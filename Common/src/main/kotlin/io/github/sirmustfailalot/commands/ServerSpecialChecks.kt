@@ -2,12 +2,9 @@ package io.github.sirmustfailalot.projectash.commands
 
 import com.mojang.brigadier.arguments.BoolArgumentType
 import com.mojang.brigadier.arguments.StringArgumentType
-import io.github.sirmustfailalot.Config
+import io.github.sirmustfailalot.projectash.config.Config
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
 import com.mojang.brigadier.suggestion.SuggestionProvider
-import io.github.sirmustfailalot.Config.addServerSpecialRule
-import io.github.sirmustfailalot.Config.removeServerSpecialRule
-import io.github.sirmustfailalot.Config.getServerSpecialRules
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands.literal
 import net.minecraft.commands.Commands.argument
@@ -35,7 +32,7 @@ object ServerSpecialChecks : PAServerSubcommand {
         literal("Special")
             // /ProjectAsh Server Special Check
             .then(literal("Check").executes { ctx ->
-                val rules = getServerSpecialRules()
+                val rules = Config.getServerSpecialRules()
                 if (rules.isEmpty()) {
                     ctx.source.sendSuccess({ Component.literal("Server special targets: (none)") }, false)
                     1
@@ -71,7 +68,7 @@ object ServerSpecialChecks : PAServerSubcommand {
                 .executes { ctx ->
                     val species = StringArgumentType.getString(ctx, "species")
                     val shinyOnly = BoolArgumentType.getBool(ctx, "shinyOnly")
-                    if (addServerSpecialRule(species, shinyOnly)) {
+                    if (Config.addServerSpecialRule(species, shinyOnly)) {
                         ctx.source.sendSuccess({
                             Component.literal("Added: ${species.lowercase()}  shinyOnly=$shinyOnly")
                         }, true)
@@ -84,7 +81,7 @@ object ServerSpecialChecks : PAServerSubcommand {
                 .executes { ctx ->
                     val species = StringArgumentType.getString(ctx, "species")
                     val shinyOnly = false
-                    if (addServerSpecialRule(species, shinyOnly)) {
+                    if (Config.addServerSpecialRule(species, shinyOnly)) {
                         ctx.source.sendSuccess({
                             Component.literal("Added: ${species.lowercase()}  shinyOnly=$shinyOnly (default)")
                         }, true)
@@ -105,7 +102,7 @@ object ServerSpecialChecks : PAServerSubcommand {
             .executes { ctx ->
                 val species = StringArgumentType.getString(ctx, "species")
                 val shinyOnly = BoolArgumentType.getBool(ctx, "shinyOnly")
-                if (removeServerSpecialRule(species, shinyOnly)) {
+                if (Config.removeServerSpecialRule(species, shinyOnly)) {
                     ctx.source.sendSuccess({
                         Component.literal("Removed: ${species.lowercase()}  shinyOnly=$shinyOnly")
                     }, true)
@@ -119,7 +116,7 @@ object ServerSpecialChecks : PAServerSubcommand {
             .executes { ctx ->
                 val species = StringArgumentType.getString(ctx, "species")
                 val shinyOnly = false
-                if (removeServerSpecialRule(species, shinyOnly)) {
+                if (Config.removeServerSpecialRule(species, shinyOnly)) {
                     ctx.source.sendSuccess({
                         Component.literal("Removed: ${species.lowercase()}  shinyOnly=$shinyOnly (default)")
                     }, true)

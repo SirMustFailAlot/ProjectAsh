@@ -2,57 +2,55 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
 
 plugins {
-    id 'org.jetbrains.kotlin.jvm' apply false
+    // Applied globally without versions here to prevent duplicate classpath conflicts
+    id "dev.architectury.loom" apply false
+    id "org.jetbrains.kotlin.jvm" version "${kotlin_version}" apply false
+    id "org.jetbrains.kotlin.plugin.serialization" version "${kotlin_version}" apply false
+}
+
+architectury {
+    minecraft = rootProject.minecraft_version
 }
 
 subprojects {
-
+    apply plugin: "dev.architectury.loom"
     apply plugin: 'org.jetbrains.kotlin.jvm'
-    if (project.hasProperty('serialization_version')) {
-        apply plugin: 'org.jetbrains.kotlin.plugin.serialization'
+    apply plugin: 'org.jetbrains.kotlin.plugin.serialization'
+
+    loom {
+        silentMojangMappingsLicense()
     }
 
     java.toolchain.languageVersion = JavaLanguageVersion.of(21)
     java.withSourcesJar()
     java.withJavadocJar()
-        
+
     jar {
         from(rootProject.file("LICENSE")) {
             rename { "${it}_${mod_name}" }
         }
         manifest {
             attributes([
-                'Specification-Title'     : mod_name,
-                'Specification-Vendor'    : mod_author,
-                'Specification-Version'   : project.jar.archiveVersion,
-                'Implementation-Title'    : project.name,
-                'Implementation-Version'  : project.jar.archiveVersion,
-                'Implementation-Vendor'   : mod_author,
-                'Implementation-Timestamp': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
-                'Timestamp'               : System.currentTimeMillis(),
-                'Built-On-Java'           : "${System.getProperty('java.vm.version')} (${System.getProperty('java.vm.vendor')})",
-                'Built-On-Minecraft'      : minecraft_version
+                    'Specification-Title'     : mod_name,
+                    'Specification-Vendor'    : mod_author,
+                    'Specification-Version'   : project.jar.archiveVersion,
+                    'Implementation-Title'    : project.name,
+                    'Implementation-Version'  : project.jar.archiveVersion,
+                    'Implementation-Vendor'   : mod_author,
+                    'Implementation-Timestamp': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
+                    'Timestamp'               : System.currentTimeMillis(),
+                    'Built-On-Java'           : "${System.getProperty('java.vm.version')} (${System.getProperty('java.vm.vendor')})",
+                    'Built-On-Minecraft'      : minecraft_version
             ])
         }
     }
 
-    sourcesJar {
-        from(rootProject.file("LICENSE")) {
-            rename { "${it}_${mod_name}" }
-        }
-    }
-
     repositories {
-
         mavenCentral()
-
-
-
         maven {
             name = 'BlameJared Maven (CrT / Bookshelf)'
             url = 'https://maven.blamejared.com'
         }
-
         maven {
             name = 'cobblemon'
             url = 'https://maven.impactdev.net/repository/development/'
@@ -60,15 +58,17 @@ subprojects {
     }
 
     dependencies {
+        minecraft "com.mojang:minecraft:${rootProject.minecraft_version}"
+        mappings loom.officialMojangMappings()
+
         implementation 'org.jetbrains.kotlin:kotlin-reflect'
         implementation platform("org.jetbrains.kotlinx:kotlinx-coroutines-bom:$coroutines_version")
         implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm'
         implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-jdk8'
-        if (project.hasProperty('serialization_version')) {
-            implementation platform("org.jetbrains.kotlinx:kotlinx-serialization-bom:$serialization_version")
-            implementation 'org.jetbrains.kotlinx:kotlinx-serialization-core-jvm'
-            implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json-jvm'
-        }
+
+        implementation platform("org.jetbrains.kotlinx:kotlinx-serialization-bom:$serialization_version")
+        implementation 'org.jetbrains.kotlinx:kotlinx-serialization-core-jvm'
+        implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json-jvm'
     }
 
     tasks.withType(JavaCompile).configureEach {
@@ -83,11 +83,7 @@ subprojects {
         }
     }
 
-    // Disables Gradle's custom module metadata from being published to maven. The
-    // metadata includes mapped dependencies which are not reasonably consumable by
-    // other mod developers.
-    tasks.withType(GenerateModuleMetadata) {
-
+    tasks.withType(GenerateModuleMetadata).configureEach {
         enabled = false
     }
 }

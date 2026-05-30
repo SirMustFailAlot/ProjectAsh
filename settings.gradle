@@ -3,6 +3,10 @@ pluginManagement {
         mavenCentral()
         gradlePluginPortal()
         maven {
+            name = 'Architectury'
+            url = 'https://maven.architectury.dev/'
+        }
+        maven {
             name = 'Forge'
             url = 'https://maven.minecraftforge.net/'
         }
@@ -11,19 +15,15 @@ pluginManagement {
             url = 'https://maven.fabricmc.net/'
         }
         maven {
-            name = 'Sponge Snapshots'
-            url = 'https://repo.spongepowered.org/repository/maven-public/'
-        }
-        maven {
             name = 'cobblemon'
             url = 'https://maven.impactdev.net/repository/development/'
         }
     }
-    plugins {
-        id 'org.jetbrains.kotlin.jvm' version kotlin_version
-        id 'org.jetbrains.kotlin.plugin.serialization' version kotlin_version
-    }
+}
+
+plugins {
+    id "dev.architectury.loom" version "1.11-SNAPSHOT" apply false
 }
 
 rootProject.name = 'ProjectAsh'
-include("Common", "Fabric", "Forge")
+include("Common", "Fabric")

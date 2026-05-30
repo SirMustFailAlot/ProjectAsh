@@ -9,12 +9,8 @@ import net.minecraft.commands.Commands.argument
 import net.minecraft.commands.Commands.literal
 import net.minecraft.network.chat.Component
 
-import io.github.sirmustfailalot.Config
-import io.github.sirmustfailalot.Config.getPlayerSpecialRules
-import io.github.sirmustfailalot.Config.addPlayerSpecialRule
-import io.github.sirmustfailalot.Config.removePlayerSpecialRule
+import io.github.sirmustfailalot.projectash.config.Config
 import net.minecraft.ChatFormatting
-import java.util.function.Supplier
 
 object PlayerSpecialChecks : PAPlayerSubcommand {
 
@@ -68,7 +64,7 @@ object PlayerSpecialChecks : PAPlayerSubcommand {
             .then(literal("Check")
                 .executes { ctx ->
                     val player = executingPlayerNameOrFail(ctx) ?: return@executes 0
-                    val rules = getPlayerSpecialRules(player)
+                    val rules = Config.getPlayerSpecialRules(player)
                     if (rules.isEmpty()) {
                         ctx.source.sendSuccess(
                             { Component.literal("[Project Ash] Player ($player) special targets: (none)") }, false
@@ -111,7 +107,7 @@ object PlayerSpecialChecks : PAPlayerSubcommand {
                             val player = executingPlayerNameOrFail(ctx) ?: return@executes 0
                             val species = StringArgumentType.getString(ctx, "species")
                             val shinyOnly = BoolArgumentType.getBool(ctx, "shinyOnly")
-                            if (addPlayerSpecialRule(player, species = species, shinyOnly)) {
+                            if (Config.addPlayerSpecialRule(player, species = species, shinyOnly)) {
                                 ctx.source.sendSuccess({
                                     Component.literal("[Project Ash] Added for $player: ${species.lowercase()}  shinyOnly=$shinyOnly")
                                 }, false)
@@ -129,7 +125,7 @@ object PlayerSpecialChecks : PAPlayerSubcommand {
                         val player = executingPlayerNameOrFail(ctx) ?: return@executes 0
                         val species = StringArgumentType.getString(ctx, "species")
                         val shinyOnly = false
-                        if (addPlayerSpecialRule(player, species = species, shinyOnly)) {
+                        if (Config.addPlayerSpecialRule(player, species = species, shinyOnly)) {
                             ctx.source.sendSuccess({
                                 Component.literal("[Project Ash] Added for $player: ${species.lowercase()}  shinyOnly=$shinyOnly (default)")
                             }, false)
@@ -154,7 +150,7 @@ object PlayerSpecialChecks : PAPlayerSubcommand {
                             val player = executingPlayerNameOrFail(ctx) ?: return@executes 0
                             val species = StringArgumentType.getString(ctx, "species")
                             val shinyOnly = BoolArgumentType.getBool(ctx, "shinyOnly")
-                            if (removePlayerSpecialRule(player, species = species, shinyOnly)) {
+                            if (Config.removePlayerSpecialRule(player, species = species, shinyOnly)) {
                                 ctx.source.sendSuccess({
                                     Component.literal("[Project Ash] Removed for $player: ${species.lowercase()}  shinyOnly=$shinyOnly")
                                 }, false)
@@ -172,7 +168,7 @@ object PlayerSpecialChecks : PAPlayerSubcommand {
                         val player = executingPlayerNameOrFail(ctx) ?: return@executes 0
                         val species = StringArgumentType.getString(ctx, "species")
                         val shinyOnly = false
-                        if (removePlayerSpecialRule(player, species = species, shinyOnly)) {
+                        if (Config.removePlayerSpecialRule(player, species = species, shinyOnly)) {
                             ctx.source.sendSuccess({
                                 Component.literal("[Project Ash] Removed for $player: ${species.lowercase()}  shinyOnly=$shinyOnly (default)")
                             }, false)

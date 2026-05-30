@@ -6,8 +6,7 @@ import net.minecraft.commands.Commands.literal
 import net.minecraft.network.chat.Component
 import net.minecraft.ChatFormatting
 
-import io.github.sirmustfailalot.Config.toggleCatchEmAllMode
-import io.github.sirmustfailalot.projectash.commands.PAPlayerSubcommand
+import io.github.sirmustfailalot.projectash.config.Config
 
 object PlayerCatchEmAll : PAPlayerSubcommand {
     /** Helper to get the executing player's name or fail gracefully if not a player. */
@@ -26,7 +25,7 @@ object PlayerCatchEmAll : PAPlayerSubcommand {
             .then(literal("enabled")
                 .executes { ctx ->
                     val player = executingPlayerNameOrFail(ctx) ?: return@executes 0
-                    toggleCatchEmAllMode(player, true)
+                    Config.toggleCatchEmAllMode(player, true)
                     ctx.source.sendSuccess({ Component.literal("[Project Ash] CatchEmAll: ENABLED").withStyle(ChatFormatting.GREEN) }, false)
                      1
                 }
@@ -34,7 +33,7 @@ object PlayerCatchEmAll : PAPlayerSubcommand {
             .then(literal("disabled")
                 .executes { ctx ->
                     val player = executingPlayerNameOrFail(ctx) ?: return@executes 0
-                    toggleCatchEmAllMode(player, false)
+                    Config.toggleCatchEmAllMode(player, false)
                     ctx.source.sendSuccess({ Component.literal("[Project Ash] CatchEmAll: DISABLED").withStyle(ChatFormatting.RED) }, false)
                     1
                 }
