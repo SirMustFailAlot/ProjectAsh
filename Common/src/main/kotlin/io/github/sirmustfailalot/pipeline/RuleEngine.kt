@@ -28,37 +28,46 @@ object RuleEngine {
         // Check Allowed Spawn Types
         if (Config.data.server.checkUnknownSpawns && pokeGlance.spawnSource == "Unknown") {
             result.discordCriteria.isServerAllowedSpawn = true
-        } else if (pokeGlance.spawnSource == "Known") {
+        } else if (pokeGlance.spawnSource == "Known" || pokeGlance.spawnSource == "Egg") {
             result.discordCriteria.isServerAllowedSpawn = true
         } else {
             result.discordCriteria.isServerAllowedSpawn = false
         }
 
         // Check Shiny Spawns
-        if (Config.data.server.shinyCheck && pokeGlance.isShiny) {
+        if ( Config.data.server.shinyCheck && pokeGlance.isShiny ) {
             result.discordCriteria.isServerMessage = true
             result.discordCriteria.serverLabels.add("Shiny")
             result.discordCriteria.serverRules.add("Shiny Rule")
         }
 
+        // Check Perfect IVs Hatches            // TODO: Add a command for spawning checks
+        if (pokeGlance.spawnSource == "Egg" && pokeGlance.isPerfectIV) {
+            result.discordCriteria.isServerMessage = true
+            result.discordCriteria.serverLabels.add("Perfect")
+            result.discordCriteria.serverRules.add("Perfect Rule")
+        }
+
         // Check Label Spawns
         val serverLabels = Config.data.server.labelCheck
         val hasServerLabel = serverLabels.firstOrNull() { it in pokeGlance.hasLabels} ?: ""
-        if ( hasServerLabel != "" ) {
+        if ( pokeGlance.spawnSource != "Egg" && hasServerLabel != "" ) {
             result.discordCriteria.isServerMessage = true
             result.discordCriteria.serverLabels.add(hasServerLabel)
             result.discordCriteria.serverRules.add("Label Rule")
         }
 
-        // Check Special Spawns
-        val isServerSpecial = Config.data.server.specialCheck.any {
-            it.speciesName.equals(pokeGlance.species, ignoreCase = true) &&
-                    (!it.shinyCheck || pokeGlance.isShiny)
-        }
-        if (isServerSpecial) {
-            result.discordCriteria.isServerMessage = true
-            result.discordCriteria.serverLabels.add("Special")
-            result.discordCriteria.serverRules.add("Special Rule")
+        if (pokeGlance.spawnSource != "Egg") {
+            // Check Special Spawns
+            val isServerSpecial = Config.data.server.specialCheck.any {
+                it.speciesName.equals(pokeGlance.species, ignoreCase = true) &&
+                        (!it.shinyCheck || pokeGlance.isShiny)
+            }
+            if (isServerSpecial) {
+                result.discordCriteria.isServerMessage = true
+                result.discordCriteria.serverLabels.add("Special")
+                result.discordCriteria.serverRules.add("Special Rule")
+            }
         }
 
         server!!.playerList.players.forEach { player ->
@@ -69,24 +78,26 @@ object RuleEngine {
             playerNotification.finalLabels.addAll(result.discordCriteria.serverLabels)
 
             // Check Criterion A: Pokedex "Catch 'Em All" check
-            val catchEmAllEnabled = Config.data.player[playerName]?.catchEmAllMode ?: false
-            if (catchEmAllEnabled) {
-                val requiresPokemon = isNewCatch(
-                    pokemon = pokeGlance.pokemon,
-                    serverPlayer = player
-                )
-                if (requiresPokemon) {
-                    playerNotification.finalLabels.add("CatchEmAll")
+            if (pokeGlance.spawnSource != "Egg") {
+                val catchEmAllEnabled = Config.data.player[playerName]?.catchEmAllMode ?: false
+                if (catchEmAllEnabled) {
+                    val requiresPokemon = isNewCatch(
+                        pokemon = pokeGlance.pokemon,
+                        serverPlayer = player
+                    )
+                    if (requiresPokemon) {
+                        playerNotification.finalLabels.add("CatchEmAll")
+                    }
+                }
+
+                Config.getPlayerSpecialRules(playerName).forEach {
+                    if (pokeGlance.species.equals(it.speciesName, ignoreCase = true) &&
+                        (!it.shinyCheck || pokeGlance.isShiny)
+                    ) {
+                        playerNotification.finalLabels.add("Special")
+                    }
                 }
             }
-
-            Config.getPlayerSpecialRules(playerName).forEach {
-                if (pokeGlance.species.equals(it.speciesName, ignoreCase = true) &&
-                        (!it.shinyCheck || pokeGlance.isShiny)) {
-                    playerNotification.finalLabels.add("Special")
-                }
-            }
-
             if (playerNotification.finalLabels.isNotEmpty()) {
                 result.playerCriteria[playerName] = playerNotification
             }

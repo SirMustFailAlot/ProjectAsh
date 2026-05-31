@@ -1,11 +1,9 @@
 package io.github.sirmustfailalot.projectash.announcer
 
-import io.github.sirmustfailalot.projectash.config.Config
 import io.github.sirmustfailalot.projectash.pipeline.PokeStream
 import io.github.sirmustfailalot.projectash.pipeline.RuleEvaluationResult
 
 import org.slf4j.LoggerFactory
-import java.time.Instant
 
 object SpawningAnnouncer {
     private val logger = LoggerFactory.getLogger("ProjectAsh")

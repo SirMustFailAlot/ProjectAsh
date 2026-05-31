@@ -29,17 +29,15 @@ object SpawnLifecycle {
         pokemonEntity: PokemonEntity,
         spawnReason: String = "Unknown"
     ) {
-        // Get Pokémon Information
-        val pokeGlance = PokeStream.pokeGlance(pokemonEntity.pokemon, spawnReason)
+        val pokeGlance = PokeStream.pokeGlance(pokemonEntity, spawnReason)
         pokeGlance.evaluationResult = RuleEngine.evaluateSpawn(pokeGlance)
 
-        // Not a server message, or no players? Bail!
         if ( !pokeGlance.evaluationResult!!.discordCriteria.isServerAllowedSpawn || (!pokeGlance.evaluationResult!!.discordCriteria.isServerMessage && pokeGlance.evaluationResult!!.playerCriteria.isEmpty())) {
             return
         }
 
-        // Track the spawn
-        pokeSpan[pokeGlance.uuidPokemon!!] = pokeGlance
+        if (pokeGlance.uuidPokemon == null) return
+        pokeSpan[pokeGlance.uuidPokemon] = pokeGlance
 
         SpawningAnnouncer.announceSpawn(
             pokeGlance = pokeGlance,

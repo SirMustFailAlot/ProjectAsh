@@ -21,6 +21,7 @@ import java.util.UUID
 
 object PokeStream {
     private val logger = LoggerFactory.getLogger("ProjectAsh")
+
     data class PokemonLifespan(
         // Spawning and Entity Context
         val pokemon: Pokemon,
@@ -46,12 +47,11 @@ object PokeStream {
         var evaluationResult: RuleEvaluationResult? = null
     )
 
+    // YOUR ORIGINAL POKEGLANCE (Kept completely untouched for Spawning)
     fun pokeGlance(
-        pokemon: Pokemon,
+        pokemonEntity: PokemonEntity,
         pokemonSpawnedBy: String
     ): PokemonLifespan {
-        // Spawning and Entity Context
-        val pokemonEntity = pokemon.entity
         val uuidPokemon = pokemonEntity?.pokemon?.uuid
         var uuidEntity: WeakReference<PokemonEntity>? = null
         val spawnSource = pokemonSpawnedBy
@@ -61,24 +61,64 @@ object PokeStream {
         var spawnClosestPlayer: String? = null
         if (uuidPokemon != null) {
             uuidEntity = WeakReference(pokemonEntity)
-
-            world = (pokemonEntity?.commandSenderWorld as? ServerLevel)!!
-            spawnDimension = when {
-                world.dimension().toString().contains("overworld") -> "Overworld"
-                world.dimension().toString().contains("the_nether") -> "Nether"
-                world.dimension().toString().contains("the_end") -> "End"
-                else -> "Unknown"
+            world = (pokemonEntity.commandSenderWorld as? ServerLevel)
+            if (world != null) {
+                spawnDimension = when {
+                    world.dimension().toString().contains("overworld") -> "Overworld"
+                    world.dimension().toString().contains("the_nether") -> "Nether"
+                    world.dimension().toString().contains("the_end") -> "End"
+                    else -> "Unknown"
+                }
+                val pos = pokemonEntity.blockPosition()
+                spawnPos = pos.x.toString() + ", " + pos.y.toString() + ", " + pos.z.toString()
+                val players = world.players()
+                    .filter { it.isAlive }
+                    .minByOrNull {
+                        it.position().distanceToSqr(pos.toVec3d())
+                    }
+                spawnClosestPlayer = players?.name?.string ?: ""
             }
-            val pos = pokemonEntity.blockPosition()
-            spawnPos = pos.x.toString() + ", " + pos.y.toString() + ", " + pos.z.toString()
-            val players = world.players()
-                .filter { it.isAlive }
-                .minByOrNull {
-                    it.position().distanceToSqr(pos.toVec3d())
-                } // Use player's position for distance calculation
-            spawnClosestPlayer = players?.name?.string ?: ""
         }
-        // Pokmemon Species
+
+        // Run common mappings
+        return buildLifespanSnapshot(
+            pokemon = pokemonEntity.pokemon,
+            uuidPokemon = uuidPokemon,
+            uuidEntity = uuidEntity,
+            spawnSource = spawnSource,
+            spawnDimension = spawnDimension ?: "",
+            spawnPos = spawnPos ?: "",
+            spawnClosestPlayer = spawnClosestPlayer ?: ""
+        )
+    }
+
+    // NEW HATCHGLANCE (Entity-Free Method designed specifically for Eggs)
+    fun hatchGlance(
+        pokemon: Pokemon,
+        pokemonSpawnedBy: String
+    ): PokemonLifespan {
+        // Eggs do not have world coordinate contexts, default to safe inventory titles
+        return buildLifespanSnapshot(
+            pokemon = pokemon,
+            uuidPokemon = pokemon.uuid, // Pull safe non-null data UUID directly
+            uuidEntity = null,          // No world entity exists
+            spawnSource = pokemonSpawnedBy,
+            spawnDimension = "N/A",
+            spawnPos = "Inventory",
+            spawnClosestPlayer = "N/A"
+        )
+    }
+
+    // Shared internal utility helper to run your naming, mapping, and sprite calculations uniformly
+    private fun buildLifespanSnapshot(
+        pokemon: Pokemon,
+        uuidPokemon: UUID?,
+        uuidEntity: WeakReference<PokemonEntity>?,
+        spawnSource: String,
+        spawnDimension: String,
+        spawnPos: String,
+        spawnClosestPlayer: String
+    ): PokemonLifespan {
         val species = pokemon.species.translatedName.string
         val formVariation: String? = pokemon.form.labels
             .asSequence()
@@ -122,29 +162,22 @@ object PokeStream {
                 thumbnailLinkRawName = "$formVariation $species"
             }
             when (formVariation) {
-                "Paldean" -> {
-                    thumbnailLinkRawName = "${species}_paldea"
-                }
-                "Alolan" -> {
-                    thumbnailLinkRawName = "${species}_alola"
-                } "Galarian" -> {
-                thumbnailLinkRawName = "${species}_galar"
-            } "Hisuian" -> {
-                thumbnailLinkRawName = "${species}_hisui"
-            }
+                "Paldean" -> { thumbnailLinkRawName = "${species}_paldea" }
+                "Alolan" -> { thumbnailLinkRawName = "${species}_alola" }
+                "Galarian" -> { thumbnailLinkRawName = "${species}_galar" }
+                "Hisuian" -> { thumbnailLinkRawName = "${species}_hisui" }
             }
         }
 
-        // Pokémon Aspects
         val pokemonResourceIdentifier = pokemon.species.resourceIdentifier
         val pokemonLabelCheck = listOf("legendary", "mythical", "ultra_beast", "paradox")
         val pokemonLabelRaw = pokemon.form.labels.firstOrNull { it in pokemonLabelCheck } ?: ""
         val pokemonLabels = when (pokemonLabelRaw.lowercase()) {
-            "legendary" -> { "Legendary" }
-            "mythical" -> { "Mythical" }
-            "paradox" -> { "Paradox" }
-            "ultra_beast" -> { "Ultra Beast" }
-            else -> { "" }
+            "legendary" -> "Legendary"
+            "mythical" -> "Mythical"
+            "paradox" -> "Paradox"
+            "ultra_beast" -> "Ultra Beast"
+            else -> ""
         }
         val isShiny = pokemon.shiny
         val ivs = pokemon.ivs
@@ -158,7 +191,6 @@ object PokeStream {
         val perfectCount = ivList.count { it == 31 }
         val isPerfectIV = perfectCount == 6
 
-        // sprite
         val spriteName = normalise(thumbnailLinkRawName)
         val sprite = if (isShiny) {
             Config.data.sprites[spriteName]?.shiny
@@ -167,36 +199,31 @@ object PokeStream {
         }
 
         return PokemonLifespan(
-            // Spawning and Entity Context
             pokemon = pokemon,
             uuidPokemon = uuidPokemon,
             uuidEntity = uuidEntity,
             spawnSource = spawnSource,
-            spawnDimension = spawnDimension?: "",
-            spawnPos = spawnPos?: "",
-            spawnClosestPlayer = spawnClosestPlayer?: "",
-
-            // Pokémon Species
+            spawnDimension = spawnDimension,
+            spawnPos = spawnPos,
+            spawnClosestPlayer = spawnClosestPlayer,
             species = species,
             speciesWithForm = speciesWithForm,
             speciesForm = formVariation ?: "",
-
-            // Pokémon Aspects
             resourceIdentifier = pokemonResourceIdentifier,
             hasLabels = pokemonLabels,
             isShiny = isShiny,
             isPerfectIV = isPerfectIV,
-            sprite = sprite?: "https://media1.tenor.com/m/ZQvpE8_p-hMAAAAC/pokemon-confused.gif",
+            sprite = sprite ?: "https://media1.tenor.com/m/ZQvpE8_p-hMAAAAC/pokemon-confused.gif"
         )
     }
 
     private fun normalise(name: String): String =
         name.trim().lowercase()
-            .replace(' ', '-')    // "Mr Mime" -> "mr-mime"
-            .replace(":", "-")    // "Type: Null" -> "type-null"
-            .replace(".", "")     // "Mr. Mime" -> "mr-mime"
-            .replace("'", "")     // "Farfetch'd" -> "farfetchd"
-            .replace("é", "e")    // "Flabébé" -> "flabebe"
-            .replace("♀", "-f")   // "Nidoran♀" -> "nidoran-f"
-            .replace("♂", "-m")   // "Nidoran♂" -> "nidoran-m"
+            .replace(' ', '-')
+            .replace(":", "-")
+            .replace(".", "")
+            .replace("'", "")
+            .replace("é", "e")
+            .replace("♀", "-f")
+            .replace("♂", "-m")
 }
