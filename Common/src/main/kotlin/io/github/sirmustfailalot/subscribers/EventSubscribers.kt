@@ -5,6 +5,7 @@ import com.cobblemon.mod.common.api.events.CobblemonEvents
 
 // Minecraft Classes
 import net.minecraft.server.MinecraftServer
+import net.minecraft.server.level.ServerPlayer
 
 object EventSubscribers {
     fun startSubscribers() {
@@ -20,5 +21,22 @@ object EventSubscribers {
                 spawnReason = "Known"
             )
         }
+
+        CobblemonEvents.POKEMON_CAPTURED.subscribe { ev ->
+            val serverPlayer: ServerPlayer = ev.player
+            val pokemon = ev.pokemon
+            SpawnLifecycle.onCapture(
+                serverPlayer = serverPlayer,
+                pokemon = pokemon
+            )
+        }
+
+        CobblemonEvents.POKEMON_FAINTED.subscribe { ev ->
+            val pokemon = ev.pokemon
+            SpawnLifecycle.onFainted(
+                pokemon = pokemon
+            )
+        }
+
     }
 }

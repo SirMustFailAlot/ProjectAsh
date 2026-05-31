@@ -37,5 +37,13 @@ object ProjectAshFabric : ModInitializer {
                 )
             }
         }
+        ServerEntityEvents.ENTITY_UNLOAD.register { entity, _ ->
+            if (entity is PokemonEntity) {
+                SpawnLifecycle.onRemoved(
+                    pokemonEntity = entity,
+                    removalReason = entity.removalReason
+                )
+            }
+        }
     }
 }

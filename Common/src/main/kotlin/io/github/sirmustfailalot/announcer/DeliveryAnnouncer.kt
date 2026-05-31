@@ -18,7 +18,7 @@ import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.time.Duration
 
-object deliveryAnnouncer {
+object DeliveryAnnouncer {
     val logger = LoggerFactory.getLogger("ProjectAsh")
     private val http: HttpClient = HttpClient.newBuilder()
         .connectTimeout(Duration.ofSeconds(8))
