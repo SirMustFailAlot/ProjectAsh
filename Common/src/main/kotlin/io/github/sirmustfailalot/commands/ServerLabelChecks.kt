@@ -10,7 +10,7 @@ import net.minecraft.commands.Commands.literal
 import net.minecraft.network.chat.Component
 
 object ServerLabelChecks : PAServerSubcommand {
-    private val CANON_LABELS = listOf("legendary", "mythical", "ultra-beast", "paradox")
+    private val CANON_LABELS = listOf("Legendary", "Mythical", "Ultra Beast", "Paradox")
     private val ADD_LABEL_SUGGESTER: SuggestionProvider<CommandSourceStack> =
         SuggestionProvider { _, builder ->
             val current = Config.getLabelCheck().map { it.trim().lowercase() }.toSet()

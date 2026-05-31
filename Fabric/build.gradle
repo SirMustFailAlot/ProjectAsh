@@ -37,6 +37,11 @@ processResources {
 }
 
 tasks.named("jar") {
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+
+    // Explicitly enforce that the jar isn't compiled until the shadowCommon artifacts are fully built
+    dependsOn configurations.shadowCommon
+
     from {
         configurations.shadowCommon.collect {
             it.isDirectory() ? it : zipTree(it)

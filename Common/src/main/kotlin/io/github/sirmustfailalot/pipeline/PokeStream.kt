@@ -6,10 +6,13 @@ import io.github.sirmustfailalot.projectash.config.Config
 // Cobblemon Classes
 import com.cobblemon.mod.common.api.pokemon.stats.Stats
 import com.cobblemon.mod.common.entity.pokemon.PokemonEntity
+import com.cobblemon.mod.common.pokemon.Pokemon
 import com.cobblemon.mod.common.util.toVec3d
 
 // Minecraft Classes
 import net.minecraft.server.level.ServerLevel
+import net.minecraft.resources.ResourceLocation
+import org.slf4j.LoggerFactory
 
 // Java Classes
 import java.lang.ref.WeakReference
@@ -17,10 +20,12 @@ import java.util.Locale
 import java.util.UUID
 
 object PokeStream {
+    private val logger = LoggerFactory.getLogger("ProjectAsh")
     data class PokemonLifespan(
         // Spawning and Entity Context
-        val uuidPokemon: UUID,
-        val uuidEntity: WeakReference<PokemonEntity>,
+        val pokemon: Pokemon,
+        val uuidPokemon: UUID? = null,
+        val uuidEntity: WeakReference<PokemonEntity>? = null,
         val spawnSource: String,
         val spawnDimension: String,
         val spawnPos: String,
@@ -32,6 +37,7 @@ object PokeStream {
         val speciesForm: String,
 
         // Pokémon Aspects
+        val resourceIdentifier: ResourceLocation? = null,
         val hasLabels: String,
         val isShiny: Boolean,
         val isPerfectIV: Boolean,
@@ -41,30 +47,39 @@ object PokeStream {
     )
 
     fun pokeGlance(
-        pokemonEntity: PokemonEntity,
+        pokemon: Pokemon,
         pokemonSpawnedBy: String
     ): PokemonLifespan {
         // Spawning and Entity Context
-        val uuidPokemon = pokemonEntity.pokemon.uuid
-        val uuidEntity = WeakReference(pokemonEntity)
+        val pokemonEntity = pokemon.entity
+        val uuidPokemon = pokemonEntity?.pokemon?.uuid
+        var uuidEntity: WeakReference<PokemonEntity>? = null
         val spawnSource = pokemonSpawnedBy
-        val world = (pokemonEntity.commandSenderWorld as? ServerLevel)!!
-        val spawnDimension = when {
-            world.dimension().toString().contains("overworld") -> "Overworld"
-            world.dimension().toString().contains("the_nether") -> "Nether"
-            world.dimension().toString().contains("the_end") -> "End"
-            else -> "Unknown"
-        }
-        val pos = pokemonEntity.blockPosition()
-        val spawnPos = pos.x.toString() + ", " + pos.y.toString() + ", " + pos.z.toString()
-        val players = world.players()
-            .filter { it.isAlive }
-            .minByOrNull { it.position().distanceToSqr(pos.toVec3d()) } // Use player's position for distance calculation
-        val spawnClosestPlayer = players?.name?.string?:""
+        var world: ServerLevel? = null
+        var spawnDimension: String? = null
+        var spawnPos: String? = null
+        var spawnClosestPlayer: String? = null
+        if (uuidPokemon != null) {
+            uuidEntity = WeakReference(pokemonEntity)
 
+            world = (pokemonEntity?.commandSenderWorld as? ServerLevel)!!
+            spawnDimension = when {
+                world.dimension().toString().contains("overworld") -> "Overworld"
+                world.dimension().toString().contains("the_nether") -> "Nether"
+                world.dimension().toString().contains("the_end") -> "End"
+                else -> "Unknown"
+            }
+            val pos = pokemonEntity.blockPosition()
+            spawnPos = pos.x.toString() + ", " + pos.y.toString() + ", " + pos.z.toString()
+            val players = world.players()
+                .filter { it.isAlive }
+                .minByOrNull {
+                    it.position().distanceToSqr(pos.toVec3d())
+                } // Use player's position for distance calculation
+            spawnClosestPlayer = players?.name?.string ?: ""
+        }
         // Pokmemon Species
-        val pokemon = pokemonEntity.pokemon
-        val species = pokemonEntity.pokemon.species.translatedName.string
+        val species = pokemon.species.translatedName.string
         val formVariation: String? = pokemon.form.labels
             .asSequence()
             .map { it }
@@ -121,8 +136,16 @@ object PokeStream {
         }
 
         // Pokémon Aspects
-        val pokemonLabelCheck = listOf("legendary", "mythical", "ultra-beast", "paradox")
-        val pokemonLabels = pokemon.form.labels.firstOrNull { it in pokemonLabelCheck } ?: ""
+        val pokemonResourceIdentifier = pokemon.species.resourceIdentifier
+        val pokemonLabelCheck = listOf("legendary", "mythical", "ultra_beast", "paradox")
+        val pokemonLabelRaw = pokemon.form.labels.firstOrNull { it in pokemonLabelCheck } ?: ""
+        val pokemonLabels = when (pokemonLabelRaw.lowercase()) {
+            "legendary" -> { "Legendary" }
+            "mythical" -> { "Mythical" }
+            "paradox" -> { "Paradox" }
+            "ultra_beast" -> { "Ultra Beast" }
+            else -> { "" }
+        }
         val isShiny = pokemon.shiny
         val ivs = pokemon.ivs
         val hp = ivs[Stats.HP] ?: 0
@@ -145,12 +168,13 @@ object PokeStream {
 
         return PokemonLifespan(
             // Spawning and Entity Context
+            pokemon = pokemon,
             uuidPokemon = uuidPokemon,
             uuidEntity = uuidEntity,
             spawnSource = spawnSource,
-            spawnDimension = spawnDimension,
-            spawnPos = spawnPos,
-            spawnClosestPlayer = spawnClosestPlayer,
+            spawnDimension = spawnDimension?: "",
+            spawnPos = spawnPos?: "",
+            spawnClosestPlayer = spawnClosestPlayer?: "",
 
             // Pokémon Species
             species = species,
@@ -158,6 +182,7 @@ object PokeStream {
             speciesForm = formVariation ?: "",
 
             // Pokémon Aspects
+            resourceIdentifier = pokemonResourceIdentifier,
             hasLabels = pokemonLabels,
             isShiny = isShiny,
             isPerfectIV = isPerfectIV,

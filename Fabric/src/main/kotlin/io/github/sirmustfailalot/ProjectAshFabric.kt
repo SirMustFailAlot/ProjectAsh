@@ -13,6 +13,7 @@ import net.fabricmc.api.ModInitializer
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents
+import java.util.concurrent.TimeUnit
 
 object ProjectAshFabric : ModInitializer {
     override fun onInitialize() {
@@ -39,10 +40,20 @@ object ProjectAshFabric : ModInitializer {
         }
         ServerEntityEvents.ENTITY_UNLOAD.register { entity, _ ->
             if (entity is PokemonEntity) {
-                SpawnLifecycle.onRemoved(
-                    pokemonEntity = entity,
-                    removalReason = entity.removalReason
-                )
+                val pokemonUUID = entity.pokemon.uuid
+                val removalReasonString = entity.removalReason?.toString() ?: "Unknown"
+
+                SpawnLifecycle.scheduler.schedule({
+                    try {
+                        SpawnLifecycle.onRemoved(
+                            pokemonEntityUUID = pokemonUUID,
+                            removalReason = removalReasonString
+                        )
+                    } catch (e: Exception) {
+                        org.slf4j.LoggerFactory.getLogger("ProjectAsh")
+                            .error("Error executing delayed onRemoved for ${entity.pokemon.species.translatedName.string}", e)
+                    }
+                }, 2, TimeUnit.SECONDS) // <-- 2 Seconds Delay
             }
         }
     }

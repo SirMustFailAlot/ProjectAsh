@@ -2,7 +2,7 @@ package io.github.sirmustfailalot.projectash.subscribers
 
 // Project Ash Classes
 import io.github.sirmustfailalot.projectash.pipeline.PokeStream
-import io.github.sirmustfailalot.projectash.announcer.SpwaningAnnouncer
+import io.github.sirmustfailalot.projectash.announcer.SpawningAnnouncer
 import io.github.sirmustfailalot.projectash.pipeline.RuleEngine
 
 // Cobblemon Classes
@@ -11,7 +11,6 @@ import com.cobblemon.mod.common.pokemon.Pokemon
 
 // Minecraft Classes
 import net.minecraft.server.level.ServerPlayer
-import net.minecraft.world.entity.Entity
 
 // Java Classes
 import java.util.UUID
@@ -22,8 +21,8 @@ import java.util.concurrent.Executors
 import org.slf4j.LoggerFactory
 
 object SpawnLifecycle {
-    private val pokeSpan = ConcurrentHashMap<UUID, PokeStream.PokemonLifespan>()
-    private val scheduler = Executors.newScheduledThreadPool(1)
+    val pokeSpan = ConcurrentHashMap<UUID, PokeStream.PokemonLifespan>()
+    val scheduler = Executors.newScheduledThreadPool(1)
 
     private val logger = LoggerFactory.getLogger("ProjectAsh")
     fun onSpawn(
@@ -31,7 +30,7 @@ object SpawnLifecycle {
         spawnReason: String = "Unknown"
     ) {
         // Get Pokémon Information
-        val pokeGlance = PokeStream.pokeGlance(pokemonEntity, spawnReason)
+        val pokeGlance = PokeStream.pokeGlance(pokemonEntity.pokemon, spawnReason)
         pokeGlance.evaluationResult = RuleEngine.evaluateSpawn(pokeGlance)
 
         // Not a server message, or no players? Bail!
@@ -40,9 +39,9 @@ object SpawnLifecycle {
         }
 
         // Track the spawn
-        pokeSpan[pokeGlance.uuidPokemon] = pokeGlance
+        pokeSpan[pokeGlance.uuidPokemon!!] = pokeGlance
 
-        SpwaningAnnouncer.announceSpawn(
+        SpawningAnnouncer.announceSpawn(
             pokeGlance = pokeGlance,
             announceDetails = pokeGlance.evaluationResult!!
         )
@@ -55,7 +54,7 @@ object SpawnLifecycle {
         ) {
         val pokeGlance = pokeSpan[pokemon.uuid] ?: return     // return if not tracked, means we don't want it.
         val caughtBy = serverPlayer.scoreboardName.toString()
-        SpwaningAnnouncer.announceCapture(
+        SpawningAnnouncer.announceCapture(
             caughtBy = caughtBy,
             pokeGlance = pokeGlance,
             announceDetails = pokeGlance.evaluationResult!!
@@ -67,7 +66,7 @@ object SpawnLifecycle {
         pokemon: Pokemon
     ) {
         val pokeGlance = pokeSpan[pokemon.uuid] ?: return     // return if not tracked, means we don't want it.
-        SpwaningAnnouncer.announceFainted(
+        SpawningAnnouncer.announceFainted(
             pokeGlance = pokeGlance,
             announceDetails = pokeGlance.evaluationResult!!
         )
@@ -75,16 +74,15 @@ object SpawnLifecycle {
     }
 
     fun onRemoved(
-        pokemonEntity: PokemonEntity,
-        removalReason: Entity.RemovalReason?
+        pokemonEntityUUID: UUID,
+        removalReason: String
     ) {
-        val pokemon = pokemonEntity.pokemon
-        val pokeGlance = pokeSpan[pokemon.uuid] ?: return     // return if not tracked, means we don't want it.
-        SpwaningAnnouncer.announceRemoved(
+        val pokeGlance = pokeSpan[pokemonEntityUUID] ?: return     // return if not tracked, means we don't want it.
+        SpawningAnnouncer.announceRemoved(
             removalReason = removalReason?.toString() ?: "Unknown",
             pokeGlance = pokeGlance,
             announceDetails = pokeGlance.evaluationResult!!
         )
-        pokeSpan.remove(pokemon.uuid)
+        pokeSpan.remove(pokemonEntityUUID)
     }
 }

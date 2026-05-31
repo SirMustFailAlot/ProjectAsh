@@ -26,7 +26,7 @@ data class ServerRule(
     var discordThumbnails: Boolean = true,
     var checkUnknownSpawns: Boolean = false,
     var shinyCheck: Boolean = true,
-    var labelCheck: List<String> = listOf("legendary", "ultra_beast", "mythical", "paradox"),
+    var labelCheck: List<String> = listOf("Legendary", "Ultra Beast", "Mythical", "Paradox"),
     var specialCheck: List<SpecialRule> = emptyList()
 )
 

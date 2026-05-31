@@ -27,7 +27,7 @@ object UtilityAnnouncer {
     val EMBED_COLOURS = mapOf(
         "CatchEmAll" to 0xD35400,
         "Shiny" to 0xF1C40F,
-        "Ultra_Beast" to 0xE74C3C,
+        "Ultra Beast" to 0xE74C3C,
         "Mythical" to 0x9B59B6,
         "Legendary" to 0x2ECC71,
         "Paradox" to 0x95A5A6,
@@ -75,7 +75,7 @@ object UtilityAnnouncer {
     }
 
     fun getEmbedColour(types: List<String>): Int {
-        val priority = listOf("Perfect", "Shiny", "Ultra_Beast", "Mythical", "Legendary", "Paradox", "Special")
+        val priority = listOf("Perfect", "Shiny", "Ultra Beast", "Mythical", "Legendary", "Paradox", "Special")
         val colours = priority.filter { it in types }.mapNotNull { EMBED_COLOURS[it] }
 
         return when {

@@ -2,6 +2,8 @@ package io.github.sirmustfailalot.projectash.announcer
 
 // ProjectAsh Classes
 import io.github.sirmustfailalot.projectash.config.Config
+import io.github.sirmustfailalot.projectash.pipeline.PokeStream
+import io.github.sirmustfailalot.projectash.pipeline.RuleEvaluationResult
 import io.github.sirmustfailalot.projectash.subscribers.EventSubscribers.server
 
 // Minecraft Classes
@@ -17,9 +19,15 @@ import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.time.Duration
+import java.time.Instant
+import kotlin.collections.component1
+import kotlin.collections.component2
+import com.google.gson.Gson
 
 object DeliveryAnnouncer {
     val logger = LoggerFactory.getLogger("ProjectAsh")
+    private val gson = Gson()
+
     private val http: HttpClient = HttpClient.newBuilder()
         .connectTimeout(Duration.ofSeconds(8))
         .build()
@@ -29,6 +37,62 @@ object DeliveryAnnouncer {
     private data class CacheEntry(val url: String?, val expiresAtMs: Long)
     private val cache = ConcurrentHashMap<String, CacheEntry>()
     private const val CACHE_TTL_MS = 24 * 60 * 60 * 1000L // 24h
+
+    fun executeBroadcast(
+        iconPrefix: String = "",
+        eventState: String,
+        pokeGlance: PokeStream.PokemonLifespan,
+        announceDetails: RuleEvaluationResult,
+        customDiscordFields: List<EmbedField> = emptyList(),
+        customThumbnail: String? = null,
+        inGameText: String
+    ) {
+        val serverLabels = announceDetails.discordCriteria.serverLabels
+        val cleanLabelStr = UtilityAnnouncer.organiseLabelsToString(serverLabels)
+
+        if (announceDetails.discordCriteria.isServerMessage && Config.data.server.discordEnabled) {
+            val webhook = Config.data.server.discordWebhook
+            if (webhook.isNullOrBlank() || webhook == "https://your.webhook.url/here") {
+                logger.info("Project Ash: Discord webhook not configured, skipping announcement")
+                return
+            }
+
+            val title = "$iconPrefix$eventState - $cleanLabelStr - ${pokeGlance.speciesWithForm}"
+
+            // Build fields list sequentially; injects Poke Tags automatically for consistency
+            val fields = mutableListOf<EmbedField>()
+            if (pokeGlance.spawnSource == "Unknown") {
+                fields.add(EmbedField("Spawn Source", "Unknown"))
+            }
+            fields.add(EmbedField("Poke Traits", cleanLabelStr.ifBlank { "None" }))
+            fields.addAll(customDiscordFields)
+
+            val rulesList = announceDetails.discordCriteria.serverRules
+            val rulesString = if (rulesList.isNotEmpty()) " | " + rulesList.joinToString(" | ") else ""
+
+            val embed = Embed(
+                title = title,
+                color = UtilityAnnouncer.getEmbedColour(serverLabels),
+                fields = fields,
+                thumbnail = customThumbnail?.let { mapOf("url" to it) },
+                footer = mapOf("text" to "ProjectAsh$rulesString"),
+                timestamp = Instant.now().toString()
+            )
+
+            val body = gson.toJson(WebhookPayload(embeds = listOf(embed)))
+            discord(messageBody = body)
+        }
+
+        if (announceDetails.playerCriteria.isNotEmpty()) {
+            announceDetails.playerCriteria.forEach { (playerName, notification) ->
+                val ingameMessage = UtilityAnnouncer.renderLabeledMessage(
+                    notification.finalLabels.toList(),
+                    inGameText
+                )
+                ingame(playerName = playerName, messageBody = ingameMessage)
+            }
+        }
+    }
 
     fun discord(messageBody: String) {
         val webhook = Config.data.server.discordWebhook

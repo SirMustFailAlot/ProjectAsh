@@ -1,6 +1,7 @@
 package io.github.sirmustfailalot.projectash.subscribers
 
 // Cobblemon Classes
+import com.cobblemon.mod.common.api.Priority
 import com.cobblemon.mod.common.api.events.CobblemonEvents
 
 // Minecraft Classes
@@ -10,6 +11,7 @@ import net.minecraft.server.level.ServerPlayer
 object EventSubscribers {
     fun startSubscribers() {
         spawnCycleListeners()
+        eggHatchListeners()
     }
 
     var server: MinecraftServer? = null
@@ -38,5 +40,9 @@ object EventSubscribers {
             )
         }
 
+    }
+
+    fun eggHatchListeners() {
+        CobblemonEvents.HATCH_EGG_POST.subscribe(Priority.LOWEST, EggHatching::onHatch)
     }
 }
