@@ -1,14 +1,14 @@
 package io.github.sirmustfailalot
 
-// Project Ash - Common
+// Project Ash Classes
 import io.github.sirmustfailalot.projectash.subscribers.EventSubscribers
 import io.github.sirmustfailalot.projectash.commands.ProjectAshCommand
 
-// Cobblemon Specific
+// Cobblemon Classes
 import com.cobblemon.mod.common.entity.pokemon.PokemonEntity
 import io.github.sirmustfailalot.projectash.subscribers.SpawnLifecycle
 
-// Fabric Specific
+// Fabric Classes
 import net.fabricmc.api.ModInitializer
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback
@@ -31,7 +31,10 @@ object ProjectAshFabric : ModInitializer {
         EventSubscribers.startSubscribers()
         ServerEntityEvents.ENTITY_LOAD.register { entity, world ->
             if (entity is PokemonEntity) {
-                SpawnLifecycle.onSpawn(entity)
+                SpawnLifecycle.onSpawn(
+                    pokemonEntity = entity,
+                    spawnReason = "Unknown"
+                )
             }
         }
     }

@@ -1,9 +1,9 @@
 package io.github.sirmustfailalot.projectash.subscribers
 
-// Cobblemon
+// Cobblemon Classes
 import com.cobblemon.mod.common.api.events.CobblemonEvents
 
-// Minecraft
+// Minecraft Classes
 import net.minecraft.server.MinecraftServer
 
 object EventSubscribers {
@@ -15,7 +15,10 @@ object EventSubscribers {
     fun spawnCycleListeners() {
         // Spawning Entities into the world
         CobblemonEvents.POKEMON_ENTITY_SPAWN.subscribe { event ->
-            SpawnLifecycle.onSpawn(event.entity)
+            SpawnLifecycle.onSpawn(
+                pokemonEntity = event.entity,
+                spawnReason = "Known"
+            )
         }
     }
 }
