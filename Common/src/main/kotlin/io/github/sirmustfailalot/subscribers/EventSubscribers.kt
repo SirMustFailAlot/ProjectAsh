@@ -12,6 +12,7 @@ object EventSubscribers {
     fun startSubscribers() {
         spawnCycleListeners()
         eggHatchListeners()
+        battleCycleListener()
     }
 
     var server: MinecraftServer? = null
@@ -44,5 +45,15 @@ object EventSubscribers {
 
     fun eggHatchListeners() {
         CobblemonEvents.HATCH_EGG_POST.subscribe(Priority.LOWEST, EggHatching::onHatch)
+    }
+
+    fun battleCycleListener() {
+        CobblemonEvents.BATTLE_STARTED_POST.subscribe { event ->
+            BattleLifecycle.onBattleStarted(event)
+        }
+
+        CobblemonEvents.BATTLE_VICTORY.subscribe { event ->
+            BattleLifecycle.onBattleCompleted(event)
+        }
     }
 }
