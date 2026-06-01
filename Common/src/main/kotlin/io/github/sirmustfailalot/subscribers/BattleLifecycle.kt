@@ -1,17 +1,19 @@
-package io.github.sirmustfailalot.battle
+package io.github.sirmustfailalot.projectash.subscribers
 
 import com.cobblemon.mod.common.api.events.battles.BattleStartedEvent
 import com.cobblemon.mod.common.api.events.battles.BattleVictoryEvent
 import com.cobblemon.mod.common.api.battles.model.actor.ActorType
-import net.minecraft.server.level.ServerPlayer
-import net.minecraft.network.chat.Component
+import com.cobblemon.mod.common.api.battles.model.actor.BattleActor
+import io.github.sirmustfailalot.projectash.pipeline.BattleStream
+import io.github.sirmustfailalot.projectash.announcer.BattleAnnouncer
 import io.github.sirmustfailalot.ProjectAsh
-import io.github.sirmustfailalot.Discord
+import io.github.sirmustfailalot.projectash.subscribers.EventSubscribers.server
 import java.util.UUID
 
-object TrainerBattleTracker {
+object BattleLifecycle {
+
     private fun getTrainerNameByUuid(uuid: UUID): String {
-        val server = ProjectAsh.server ?: return "Trainer"
+        val server = server ?: return "Trainer"
         for (level in server.allLevels) {
             val entity = level.getEntity(uuid)
             if (entity != null) {
@@ -23,53 +25,45 @@ object TrainerBattleTracker {
 
     fun onBattleStarted(event: BattleStartedEvent.Post) {
         val battle = event.battle
-        val server = ProjectAsh.server ?: return
+        val server = server ?: return
+
         val players = battle.actors
             .filter { it.type == ActorType.PLAYER }
             .mapNotNull { server.playerList.getPlayer(it.uuid) }
         if (players.isEmpty()) return
-        val startMessage: Component
-        if (battle.isPvP) {
-            val side1Players = battle.side1.actors.filter { it.type == ActorType.PLAYER }.mapNotNull { server.playerList.getPlayer(it.uuid) }.joinToString(", ") { it.scoreboardName }
-            val side2Players = battle.side2.actors.filter { it.type == ActorType.PLAYER }.mapNotNull { server.playerList.getPlayer(it.uuid) }.joinToString(", ") { it.scoreboardName }
 
-            startMessage = Component.literal("⚔️ §bPvP Battle Started: $side1Players §7vs $side2Players")
-        } else {
-            val trainers = battle.actors.filter { it.type == ActorType.NPC }
-            if (trainers.isEmpty()) return
-            val playerNames = players.joinToString(", ") { it.scoreboardName }
-            val trainerNames = trainers.map { getTrainerNameByUuid(it.uuid) }.joinToString(", ")
-            startMessage = Component.literal("§eBattle Started: $playerNames §7vs $trainerNames")
-        }
+        val side1Players = battle.side1.actors.filter { it.type == ActorType.PLAYER }.mapNotNull { server.playerList.getPlayer(it.uuid) }.joinToString(", ") { it.scoreboardName }
+        val side2Players = battle.side2.actors.filter { it.type == ActorType.PLAYER }.mapNotNull { server.playerList.getPlayer(it.uuid) }.joinToString(", ") { it.scoreboardName }
 
-        server.playerList.players.forEach { p ->
-            p.sendSystemMessage(startMessage)
-        }
+        val opponentNames = if (battle.isPvP) side2Players else battle.actors.filter { it.type == ActorType.NPC }.map { getTrainerNameByUuid(it.uuid) }.joinToString(", ")
+        val playerNames = if (battle.isPvP) side1Players else players.joinToString(", ") { it.scoreboardName }
+
+        val battleGlance = BattleStream.BattleGlance(
+            isPvP = battle.isPvP,
+            playerNames = playerNames,
+            opponentNames = opponentNames
+        )
+
+        BattleAnnouncer.announceBattleStart(server, battleGlance)
     }
 
     fun onBattleCompleted(event: BattleVictoryEvent) {
         val battle = event.battle
-        val server = ProjectAsh.server ?: return
+        val server = server ?: return
         val isPvP = battle.isPvP
         val trainers = battle.actors.filter { it.type == ActorType.NPC }
         if (!isPvP && trainers.isEmpty()) return
+
         val totalActors = battle.actors.filter { it.type == ActorType.PLAYER || it.type == ActorType.NPC }
         val winningActors = event.winners
         val losingActors = totalActors.filter { !winningActors.contains(it) }
 
-        fun resolveActorName(actor: com.cobblemon.mod.common.api.battles.model.actor.BattleActor): String {
+        fun resolveActorName(actor: BattleActor): String {
             return if (actor.type == ActorType.PLAYER) {
                 server.playerList.getPlayer(actor.uuid)?.scoreboardName ?: "Player"
             } else {
                 getTrainerNameByUuid(actor.uuid)
             }
-        }
-
-        val winnersString = winningActors.joinToString(", ") { "§a" + resolveActorName(it) }
-        val losersString = losingActors.joinToString(", ") { "§c" + resolveActorName(it) }
-        val inGameSummary = Component.literal("§eBattle Finished: $winnersString §7vs $losersString")
-        server.playerList.players.forEach { p ->
-            p.sendSystemMessage(inGameSummary)
         }
 
         val playerRevealedPokemonUuids = totalActors
@@ -79,7 +73,7 @@ object TrainerBattleTracker {
             .map { seenPokemon -> seenPokemon.uuid }
             .toSet()
 
-        val discordSummaries = totalActors.map { actor ->
+        val participantSnapshots = totalActors.map { actor ->
             val name = resolveActorName(actor)
             val isWinner = winningActors.contains(actor)
 
@@ -91,36 +85,36 @@ object TrainerBattleTracker {
 
             val pokemonStatusList = targetPokemonList.map { battlePokemon ->
                 val pokemonInstance = battlePokemon.originalPokemon
-                io.github.sirmustfailalot.DiscordPokemonStatus(
+                BattleStream.BattlePokemonSnapshot(
                     name = pokemonInstance.species.name,
                     level = pokemonInstance.level,
                     isShiny = pokemonInstance.shiny,
                     isFainted = battlePokemon.health <= 0 || pokemonInstance.currentHealth <= 0
                 )
             }.toMutableList()
+
             if (actor.type == ActorType.NPC) {
                 val unseenCount = actor.pokemonList.size - targetPokemonList.size
                 if (unseenCount > 0) {
                     repeat(unseenCount) {
                         pokemonStatusList.add(
-                            io.github.sirmustfailalot.DiscordPokemonStatus(
-                                name = "???",
-                                level = 0,
-                                isShiny = false,
-                                isFainted = false
-                            )
+                            BattleStream.BattlePokemonSnapshot(name = "???", level = 0, isShiny = false, isFainted = false)
                         )
                     }
                 }
             }
 
-            io.github.sirmustfailalot.DiscordParticipantSummary(
+            BattleStream.BattleParticipantSnapshot(
                 displayName = name,
                 isWinner = isWinner,
-                pokemonList = pokemonStatusList
+                teams = pokemonStatusList
             )
         }
 
-        Discord.battleFinished(server, discordSummaries)
+        val summaryGlance = BattleStream.BattleSummaryGlance(
+            participants = participantSnapshots
+        )
+
+        BattleAnnouncer.announceBattleVictory(server, summaryGlance)
     }
 }

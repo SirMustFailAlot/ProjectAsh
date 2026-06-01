@@ -1,6 +1,6 @@
 package io.github.sirmustfailalot.projectash.commands
 
-import io.github.sirmustfailalot.Config
+import io.github.sirmustfailalot.projectash.config.Config
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
 import net.minecraft.ChatFormatting
 import net.minecraft.commands.CommandSourceStack

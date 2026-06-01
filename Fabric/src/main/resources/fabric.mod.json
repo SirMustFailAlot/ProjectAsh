@@ -14,13 +14,13 @@
     },
   
     "license": "CC0-1.0",
-    "icon": "assets/modid/icon.png",
+    "icon": "assets/project_ash/icon.png",
   
     "environment": "*",
     "entrypoints": {
       "main": [
         {
-          "value": "io.github.sirmustfailalot.ProjectAsh",
+          "value": "io.github.sirmustfailalot.ProjectAshFabric",
           "adapter": "kotlin"
         }
       ]

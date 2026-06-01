@@ -1,6 +1,6 @@
 package io.github.sirmustfailalot.projectash.commands
 
-import io.github.sirmustfailalot.Config
+import io.github.sirmustfailalot.projectash.config.Config
 import com.mojang.brigadier.arguments.StringArgumentType
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
 import com.mojang.brigadier.suggestion.SuggestionProvider
@@ -10,7 +10,7 @@ import net.minecraft.commands.Commands.literal
 import net.minecraft.network.chat.Component
 
 object ServerLabelChecks : PAServerSubcommand {
-    private val CANON_LABELS = listOf("legendary", "mythical", "ultra-beast", "paradox")
+    private val CANON_LABELS = listOf("Legendary", "Mythical", "Ultra Beast", "Paradox")
     private val ADD_LABEL_SUGGESTER: SuggestionProvider<CommandSourceStack> =
         SuggestionProvider { _, builder ->
             val current = Config.getLabelCheck().map { it.trim().lowercase() }.toSet()

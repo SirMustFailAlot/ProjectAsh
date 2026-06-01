@@ -1,4 +1,4 @@
-package io.github.sirmustfailalot
+package io.github.sirmustfailalot.projectash.config
 
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
@@ -26,7 +26,7 @@ data class ServerRule(
     var discordThumbnails: Boolean = true,
     var checkUnknownSpawns: Boolean = false,
     var shinyCheck: Boolean = true,
-    var labelCheck: List<String> = listOf("legendary", "ultra_beast", "mythical", "paradox"),
+    var labelCheck: List<String> = listOf("Legendary", "Ultra Beast", "Mythical", "Paradox"),
     var specialCheck: List<SpecialRule> = emptyList()
 )
 
@@ -253,7 +253,7 @@ object Config {
 
     /** Load default sprites JSON from resources into a Map<String, SpriteEntry>. */
     private fun loadSpritesFromResource(): MutableMap<String, SpriteEntry> {
-        val path = "projectash/sprites.json" // src/main/resources/projectash/sprites.json
+        val path = "assets/projectash/sprites.json" // src/main/resources/projectash/sprites.json
         val stream = javaClass.classLoader.getResourceAsStream(path)
             ?: return mutableMapOf() // resource missing -> empty
 

@@ -1,44 +1,34 @@
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
-
 plugins {
-    id 'fabric-loom' version '1.11-SNAPSHOT'
     id 'maven-publish'
-    id 'idea'
 }
 
 archivesBaseName = "$mod_name-fabric-$minecraft_version"
 
+architectury {
+    platformSetupLoomIde()
+    fabric()
+}
+
+configurations {
+    common
+    shadowCommon
+    compileClasspath.extendsFrom common
+    runtimeClasspath.extendsFrom common
+    developmentFabric.extendsFrom common
+}
+
 dependencies {
-    minecraft "com.mojang:minecraft:$minecraft_version"
-    mappings loom.officialMojangMappings()
     modImplementation "net.fabricmc:fabric-loader:$fabric_loader_version"
     modImplementation "net.fabricmc.fabric-api:fabric-api:$fabric_version"
     modImplementation "net.fabricmc:fabric-language-kotlin:$fabric_kotlin_version"
     modImplementation "com.cobblemon:fabric:${project.cobblemon_version}"
-    implementation group: 'com.google.code.findbugs', name: 'jsr305', version: '3.0.1'
-    implementation project(":Common")
-}
+    modApi "dev.architectury:architectury-fabric:${rootProject.architectury_api_version}"
 
-loom {
-    runs {
-        client {
-            client()
-            setConfigName("Fabric Client")
-            ideConfigGenerated(true)
-            runDir("run")
-        }
-        server {
-            server()
-            setConfigName("Fabric Server")
-            ideConfigGenerated(true)
-            runDir("run")
-        }
-    }
+    common project(path: ":Common", configuration: "namedElements")
+    shadowCommon project(path: ":Common", configuration: "transformProductionFabric")
 }
-
 
 processResources {
-    from project(":Common").sourceSets.main.resources
     inputs.property "version", project.version
 
     filesMatching("fabric.mod.json") {
@@ -46,8 +36,17 @@ processResources {
     }
 }
 
-tasks.withType(KotlinCompilationTask).configureEach {
-    source(project(":Common").sourceSets.main.allSource)
+tasks.named("jar") {
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+
+    // Explicitly enforce that the jar isn't compiled until the shadowCommon artifacts are fully built
+    dependsOn configurations.shadowCommon
+
+    from {
+        configurations.shadowCommon.collect {
+            it.isDirectory() ? it : zipTree(it)
+        }
+    }
 }
 
 publishing {
@@ -59,7 +58,6 @@ publishing {
             from components.java
         }
     }
-
     repositories {
         maven {
             url "file://" + System.getenv("local_maven")
