@@ -11,7 +11,6 @@ object BattleAnnouncer {
     private val gson = Gson()
 
     fun announceBattleStart(server: MinecraftServer, glance: BattleStream.BattleGlance) {
-        // 1. Generate and broadcast In-Game Message
         val inGameText = if (glance.isPvP) {
             "⚔️ §bPvP Battle Started: §f${glance.playerNames} §7vs §f${glance.opponentNames}"
         } else {
@@ -19,7 +18,6 @@ object BattleAnnouncer {
         }
         server.playerList.players.forEach { p -> p.sendSystemMessage(Component.literal(inGameText)) }
 
-        // 2. Build Discord Payload for Battle Start
         if (Config.data.server.discordEnabled) {
             val title = if (glance.isPvP) "⚔️ PvP Battle Started!" else "🎒 Trainer Challenge Initiated!"
 
@@ -46,20 +44,17 @@ object BattleAnnouncer {
     }
 
     fun announceBattleVictory(server: MinecraftServer, summary: BattleStream.BattleSummaryGlance) {
-        // 1. Send In-Game Message
         val winners = summary.participants.filter { it.isWinner }.joinToString(", ") { "§a" + it.displayName }
         val losers = summary.participants.filter { !it.isWinner }.joinToString(", ") { "§c" + it.displayName }
         val inGameSummaryText = "§eBattle Finished: $winners §7vs $losers"
         server.playerList.players.forEach { p -> p.sendSystemMessage(Component.literal(inGameSummaryText)) }
 
-        // 2. Build Discord Payload restoring your exact original format layout
         if (Config.data.server.discordEnabled) {
 
             val fields = summary.participants.map { participant ->
                 val outcomeTag = if (participant.isWinner) "🏆 WINNER" else "💀 DEFEAT"
 
                 val partyLines = participant.teams.joinToString("\n") { poke ->
-                    // Your exact original placeholder detection logic
                     if (poke.name == "???") {
                         "🟪 *${poke.name}*"
                     } else {
@@ -72,11 +67,10 @@ object BattleAnnouncer {
                 EmbedField(
                     name = "${participant.displayName}\n($outcomeTag)",
                     value = partyLines,
-                    inline = true // Keeps columns rendering side-by-side cleanly
+                    inline = true
                 )
             }
 
-            // Restore your exact team victory color checker logic
             val teamWonAll = summary.participants.any { it.isWinner }
             val cardColor = if (teamWonAll) { 0x2ECC71 } else { 0xE74C3C }
 

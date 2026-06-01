@@ -1,17 +1,20 @@
 package io.github.sirmustfailalot.projectash.subscribers
 
+// Project Ash Classes
+import io.github.sirmustfailalot.projectash.pipeline.BattleStream
+import io.github.sirmustfailalot.projectash.announcer.BattleAnnouncer
+import io.github.sirmustfailalot.projectash.subscribers.EventSubscribers.server
+
+// Cobblemon Classes
 import com.cobblemon.mod.common.api.events.battles.BattleStartedEvent
 import com.cobblemon.mod.common.api.events.battles.BattleVictoryEvent
 import com.cobblemon.mod.common.api.battles.model.actor.ActorType
 import com.cobblemon.mod.common.api.battles.model.actor.BattleActor
-import io.github.sirmustfailalot.projectash.pipeline.BattleStream
-import io.github.sirmustfailalot.projectash.announcer.BattleAnnouncer
-import io.github.sirmustfailalot.ProjectAsh
-import io.github.sirmustfailalot.projectash.subscribers.EventSubscribers.server
+
+// Other Classes
 import java.util.UUID
 
 object BattleLifecycle {
-
     private fun getTrainerNameByUuid(uuid: UUID): String {
         val server = server ?: return "Trainer"
         for (level in server.allLevels) {
@@ -56,7 +59,6 @@ object BattleLifecycle {
 
         val totalActors = battle.actors.filter { it.type == ActorType.PLAYER || it.type == ActorType.NPC }
         val winningActors = event.winners
-        val losingActors = totalActors.filter { !winningActors.contains(it) }
 
         fun resolveActorName(actor: BattleActor): String {
             return if (actor.type == ActorType.PLAYER) {
