@@ -12,6 +12,7 @@ object ProjectAshCommand {
         ServerDiscordUpdateWebhook,
         ServerDiscordThumbnails,
         ServerInGameEnabled,
+        ServerPerfectChecks,
         ServerShinyChecks,
         ServerCheckUnknownSpawns,
         ServerLabelChecks,

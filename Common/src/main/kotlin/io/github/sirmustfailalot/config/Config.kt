@@ -25,6 +25,7 @@ data class ServerRule(
     var discordWebhook: String = "https://your.webhook.url/here",
     var discordThumbnails: Boolean = true,
     var checkUnknownSpawns: Boolean = false,
+    var perfectCheck: Boolean = false,
     var shinyCheck: Boolean = true,
     var labelCheck: List<String> = listOf("Legendary", "Ultra Beast", "Mythical", "Paradox"),
     var specialCheck: List<SpecialRule> = emptyList()
@@ -72,6 +73,7 @@ object Config {
     fun setServerDiscordWebhook(url: String) = write { it.server.discordWebhook = url }
     fun setServerDiscordThumbnails(enabled: Boolean) = write { it.server.discordThumbnails = enabled }
     fun setServerShinyCheck(enabled: Boolean) = write { it.server.shinyCheck = enabled }
+    fun setServerPerfectCheck(enabled: Boolean) = write { it.server.perfectCheck = enabled }
     fun setCheckUnknownSpawns(enabled: Boolean) = write { it.server.checkUnknownSpawns = enabled }
 
     fun addLabelCheck(label: String): Boolean {

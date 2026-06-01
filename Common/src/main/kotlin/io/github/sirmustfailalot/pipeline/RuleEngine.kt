@@ -41,8 +41,8 @@ object RuleEngine {
             result.discordCriteria.serverRules.add("Shiny Rule")
         }
 
-        // Check Perfect IVs Hatches            // TODO: Add a command for spawning checks
-        if (pokeGlance.spawnSource == "Egg" && pokeGlance.isPerfectIV) {
+        // Check Perfect IVs Hatches
+        if (( pokeGlance.spawnSource == "Egg" || Config.data.server.perfectCheck ) && pokeGlance.isPerfectIV) {
             result.discordCriteria.isServerMessage = true
             result.discordCriteria.serverLabels.add("Perfect")
             result.discordCriteria.serverRules.add("Perfect Rule")
