@@ -26,7 +26,7 @@ object EggAnnouncer {
         )
 
         DeliveryAnnouncer.executeBroadcast(
-            iconPrefix = "🐣",
+            iconPrefix = "🐣 ",
             eventState = "Hatch",
             pokeGlance = hatchGlance,
             announceDetails = announceDetails,

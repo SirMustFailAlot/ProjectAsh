@@ -17,8 +17,6 @@ import java.util.concurrent.TimeUnit
 
 object ProjectAshFabric : ModInitializer {
     override fun onInitialize() {
-        ProjectAsh.initialise()
-
         // Load the Minecraft Server Variable
         ServerLifecycleEvents.SERVER_STARTED.register { srv -> EventSubscribers.server = srv}
         ServerLifecycleEvents.SERVER_STOPPED.register { EventSubscribers.server = null }
@@ -29,7 +27,7 @@ object ProjectAshFabric : ModInitializer {
         }
 
         // Load Common Subscribers and Fabric Specific Subscribers
-        EventSubscribers.startSubscribers()
+        ProjectAsh.initialise()
         ServerEntityEvents.ENTITY_LOAD.register { entity, world ->
             if (entity is PokemonEntity) {
                 SpawnLifecycle.onSpawn(
