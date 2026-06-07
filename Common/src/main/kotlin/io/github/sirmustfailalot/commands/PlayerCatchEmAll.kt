@@ -31,39 +31,42 @@ object PlayerCatchEmAll : PAPlayerSubcommand {
     override fun build(): LiteralArgumentBuilder<CommandSourceStack> =
         literal("CatchEmAll")
             // ProjectAsh Player CatchEmAll LocalSpawnsOnly? true/false - Turns on/off CatchEmAll for the player, regardless of other settings.
-            .then(
-                literal("Enabled?")
-                    .then(argument("CatchEmAllEnabled?", BoolArgumentType.bool())
-                        .suggests(BOOL_SUGGESTER)
-                            .executes { ctx ->
-                                val player = executingPlayerNameOrFail(ctx) ?: return@executes 0
-                                val isCatchEmAllEnabled = BoolArgumentType.getBool(ctx, "CatchEmAllEnabled?")
-                                Config.toggleCatchEmAllModeEnabled(player, isCatchEmAllEnabled)
-                                if (isCatchEmAllEnabled) {
-                                    ctx.source.sendSuccess({Component.literal("[Project Ash] CatchEmAll Mode: $isCatchEmAllEnabled").withStyle(ChatFormatting.GREEN)}, false)
-                                } else {
-                                    ctx.source.sendSuccess({Component.literal("[Project Ash] CatchEmAll Mode: $isCatchEmAllEnabled").withStyle(ChatFormatting.RED)}, false)
-                                }
-                                1
-                            }
-                    )
+            .then(literal("Enabled?")
+                .then(literal("enabled")
+                    .executes { ctx ->
+                        val player = executingPlayerNameOrFail(ctx) ?: return@executes 0
+                        Config.toggleCatchEmAllModeEnabled(player, true)
+                            ctx.source.sendSuccess({Component.literal("[Project Ash] CatchEmAll Mode: TRUE").withStyle(ChatFormatting.GREEN)}, false)
+                        1
+                    }
+                )
+                .then(literal("disabled")
+                    .executes { ctx ->
+                        val player = executingPlayerNameOrFail(ctx) ?: return@executes 0
+                        Config.toggleCatchEmAllModeEnabled(player, false)
+                        ctx.source.sendSuccess({Component.literal("[Project Ash] CatchEmAll Mode: FALSE").withStyle(ChatFormatting.RED)}, false)
+                        1
+                    }
+                )
             )
+
             // ProjectAsh Player CatchEmAll LocalSpawnsOnly? true/false - Turns on/off CatchEmAll for the player's local spawns only
-            .then(
-                literal("LocalSpawnsOnly?")
-                    .then(argument("CatchEmAllLocalOnly?", BoolArgumentType.bool())
-                        .suggests(BOOL_SUGGESTER)
-                            .executes { ctx ->
-                                val player = executingPlayerNameOrFail(ctx) ?: return@executes 0
-                                val isCatchEmAllLocalOnly = BoolArgumentType.getBool(ctx, "CatchEmAllLocalOnly?")
-                                Config.toggleCatchEmAllModeLocal(player, isCatchEmAllLocalOnly)
-                                if (isCatchEmAllLocalOnly) {
-                                    ctx.source.sendSuccess({Component.literal("[Project Ash] CatchEmAll Local Spawns Only?: $isCatchEmAllLocalOnly").withStyle(ChatFormatting.GREEN)}, false)
-                                } else {
-                                    ctx.source.sendSuccess({Component.literal("[Project Ash] CatchEmAll Local Spawns Only?: $isCatchEmAllLocalOnly").withStyle(ChatFormatting.RED)}, false)
-                                }
-                                1
-                            }
-                    )
+            .then(literal("LocalSpawnsOnly?")
+                .then(literal("enabled")
+                    .executes { ctx ->
+                        val player = executingPlayerNameOrFail(ctx) ?: return@executes 0
+                        Config.toggleCatchEmAllModeLocal(player, true)
+                        ctx.source.sendSuccess({Component.literal("[Project Ash] CatchEmAll Local Spawns Only?: TRUE").withStyle(ChatFormatting.GREEN)}, false)
+                        1
+                    }
+                )
+                .then(literal("disabled")
+                    .executes { ctx ->
+                        val player = executingPlayerNameOrFail(ctx) ?: return@executes 0
+                        Config.toggleCatchEmAllModeLocal(player, false)
+                        ctx.source.sendSuccess({Component.literal("[Project Ash] CatchEmAll Local Spawns Only?: FALSE").withStyle(ChatFormatting.RED)}, false)
+                        1
+                    }
+                )
             )
 }
