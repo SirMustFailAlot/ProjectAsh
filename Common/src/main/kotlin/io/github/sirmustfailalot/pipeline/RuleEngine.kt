@@ -79,13 +79,18 @@ object RuleEngine {
 
             // Check Criterion A: Pokedex "Catch 'Em All" check
             if (pokeGlance.spawnSource != "Egg") {
-                val catchEmAllEnabled = Config.data.player[playerName]?.catchEmAllMode ?: false
+                val catchEmAllEnabled = Config.data.player[playerName]?.catchEmAllMode?.enabled ?: false
                 if (catchEmAllEnabled) {
                     val requiresPokemon = isNewCatch(
                         pokemon = pokeGlance.pokemon,
                         serverPlayer = player
                     )
-                    if (requiresPokemon) {
+
+                    // Local Spawns Check
+                    val localSpawnOnly = Config.data.player[playerName]?.catchEmAllMode?.localSpawnsOnly ?: true
+                    val requiresSpawn = if (localSpawnOnly && pokeGlance.spawnClosestPlayer == playerName) { true } else if (!localSpawnOnly) { true } else { false }
+
+                    if (requiresPokemon && requiresSpawn) {
                         playerNotification.finalLabels.add("CatchEmAll")
                     }
                 }

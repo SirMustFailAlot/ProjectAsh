@@ -14,6 +14,11 @@ data class SpecialRule(
     var shinyCheck: Boolean = false
 )
 
+data class CatchEmAllRule(
+    var enabled: Boolean = false,
+    var localSpawnsOnly: Boolean = true
+)
+
 data class SpriteEntry(
     var standard: String = "",
     var shiny: String = ""
@@ -32,7 +37,7 @@ data class ServerRule(
 )
 
 data class PlayerRule(
-    var catchEmAllMode: Boolean = false,
+    var catchEmAllMode: CatchEmAllRule = CatchEmAllRule(),
     var enabled: Boolean = true,
     var specialCheck: MutableList<SpecialRule> = mutableListOf()
 )
@@ -53,7 +58,6 @@ object Config {
     var data: ConfigData = ConfigData()
         private set
 
-    // Initialise and Create
     fun init() {
         if (!file.exists()) {
             file.parentFile.mkdirs()
@@ -155,20 +159,20 @@ object Config {
         return playerRule
     }
 
-    fun toggleCatchEmAllMode(playerName: String, toggle: Boolean): Boolean {
+    fun toggleCatchEmAllModeEnabled(playerName: String, toggle: Boolean): Boolean {
         val p = ensurePlayer(playerName)
         write {
-            it.player[playerName]!!.catchEmAllMode = toggle
+            it.player[playerName]!!.catchEmAllMode.enabled = toggle
         }
         return true
     }
 
-    fun getCatchEmAllPlayers(): List<String> {
-        return data.player.entries
-            .asSequence()
-            .filter { (_, rule) -> rule.catchEmAllMode }
-            .map { (name, _) -> name }
-            .toList()
+    fun toggleCatchEmAllModeLocal(playerName: String, toggle: Boolean): Boolean {
+        val p = ensurePlayer(playerName)
+        write {
+            it.player[playerName]!!.catchEmAllMode.localSpawnsOnly = toggle
+        }
+        return true
     }
 
     fun addPlayerSpecialRule(playerName: String, species: String, shinyOnly: Boolean): Boolean {

@@ -26,7 +26,7 @@ object PlayerSpecialChecks : PAPlayerSubcommand {
         }
 
     /** Booleans with false first (our default). */
-    private val BOOL_SUGGESTER: SuggestionProvider<CommandSourceStack> =
+    val BOOL_SUGGESTER: SuggestionProvider<CommandSourceStack> =
         SuggestionProvider { _, b -> b.suggest("false"); b.suggest("true"); b.buildFuture() }
 
     /** Helper to get the executing player's name or fail gracefully if not a player. */
