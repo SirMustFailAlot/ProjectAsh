@@ -18,6 +18,7 @@ object BattleAnnouncer {
         }
         server.playerList.players.forEach { p -> p.sendSystemMessage(Component.literal(inGameText)) }
 
+        /*      -- Remove Discord Notifications for battle starts, only announce in game
         if (Config.data.server.discordEnabled) {
             val title = if (glance.isPvP) "⚔️ PvP Battle Started!" else "🎒 Trainer Challenge Initiated!"
 
@@ -41,6 +42,8 @@ object BattleAnnouncer {
             val body = gson.toJson(WebhookPayload(embeds = listOf(embed)))
             DeliveryAnnouncer.discord(messageBody = body)
         }
+
+         */
     }
 
     fun announceBattleVictory(server: MinecraftServer, summary: BattleStream.BattleSummaryGlance) {
