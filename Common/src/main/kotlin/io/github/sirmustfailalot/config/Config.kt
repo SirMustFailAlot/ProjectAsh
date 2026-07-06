@@ -9,7 +9,7 @@ import org.slf4j.LoggerFactory
 import java.io.File
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-data class SpecialRule(
+data class PokeRule(
     var speciesName: String = "shuckle",
     var shinyCheck: Boolean = false
 )
@@ -33,13 +33,14 @@ data class ServerRule(
     var perfectCheck: Boolean = false,
     var shinyCheck: Boolean = true,
     var labelCheck: List<String> = listOf("Legendary", "Ultra Beast", "Mythical", "Paradox"),
-    var specialCheck: List<SpecialRule> = emptyList()
+    var specialCheck: List<PokeRule> = emptyList(),
+    var blacklistCheck: List<PokeRule> = emptyList()
 )
 
 data class PlayerRule(
     var catchEmAllMode: CatchEmAllRule = CatchEmAllRule(),
     var enabled: Boolean = true,
-    var specialCheck: MutableList<SpecialRule> = mutableListOf()
+    var specialCheck: MutableList<PokeRule> = mutableListOf()
 )
 
 data class ConfigData(
@@ -136,11 +137,44 @@ object Config {
         return true
     }
 
-    fun getServerSpecialRules(): List<SpecialRule> = Config.data.server.specialCheck
+    fun getServerSpecialRules(): List<PokeRule> = Config.data.server.specialCheck
 
     fun clearServerSpecialRules(): Boolean {
         if (data.server.specialCheck.isEmpty()) return false
         write { it.server.specialCheck = emptyList() }   // keep server list immutable
+        return true
+    }
+
+    fun addServerBlacklistRule(species: String, shinyOnly: Boolean): Boolean {
+        val rule = canonicalRule(species, shinyOnly)
+        // no-op if already present
+        if (Config.data.server.blacklistCheck.any { it == rule }) return false
+
+        write {
+            val next = it.server.blacklistCheck.toMutableList()
+            next.add(rule)
+            it.server.blacklistCheck = next
+        }
+        return true
+    }
+
+    fun removeServerBlacklistRule(species: String, shinyOnly: Boolean): Boolean {
+        val rule = canonicalRule(species, shinyOnly)
+        if (!Config.data.server.blacklistCheck.contains(rule)) return false
+
+        write {
+            val next = it.server.blacklistCheck.toMutableList()
+            next.remove(rule)
+            it.server.blacklistCheck = next
+        }
+        return true
+    }
+
+    fun getServerBlacklistRules(): List<PokeRule> = Config.data.server.blacklistCheck
+
+    fun clearServerBlacklistRules(): Boolean {
+        if (data.server.blacklistCheck.isEmpty()) return false
+        write { it.server.blacklistCheck = emptyList() }   // keep server list immutable
         return true
     }
 
@@ -198,7 +232,7 @@ object Config {
         return true
     }
 
-    fun getPlayerSpecialRules(playerName: String): List<SpecialRule> =
+    fun getPlayerSpecialRules(playerName: String): List<PokeRule> =
         (Config.data.player[playerName] ?: PlayerRule()).specialCheck
 
     fun setPlayerSpecialCheck(name: String, enabled: Boolean) = write {
@@ -227,7 +261,7 @@ object Config {
     /** Make a canonical rule for reliable equality/contains/remove operations. */
     private fun norm(s: String) = s.trim().lowercase()
     private fun canonicalRule(species: String, shinyOnly: Boolean) =
-        SpecialRule(
+        PokeRule(
             speciesName = norm(species),
             shinyCheck = shinyOnly
         )

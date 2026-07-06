@@ -24,49 +24,58 @@ object RuleEngine {
         val logger = LoggerFactory.getLogger("ProjectAsh")
         val result = RuleEvaluationResult()
 
-        // SERVER RULES
-        // Check Allowed Spawn Types
-        if (Config.data.server.checkUnknownSpawns && pokeGlance.spawnSource == "Unknown") {
-            result.discordCriteria.isServerAllowedSpawn = true
-        } else if (pokeGlance.spawnSource == "Known" || pokeGlance.spawnSource == "Egg") {
-            result.discordCriteria.isServerAllowedSpawn = true
-        } else {
-            result.discordCriteria.isServerAllowedSpawn = false
+        val isServerBlacklist = Config.data.server.blacklistCheck.any {
+            it.speciesName.equals(pokeGlance.species.replace(" ", "-"), ignoreCase = true) &&
+            (
+                it.shinyCheck ||               // blacklist both normal + shiny
+                (!it.shinyCheck && !pokeGlance.isShiny) // blacklist only normal
+            )
         }
 
-        // Check Shiny Spawns
-        if ( Config.data.server.shinyCheck && pokeGlance.isShiny ) {
-            result.discordCriteria.isServerMessage = true
-            result.discordCriteria.serverLabels.add("Shiny")
-            result.discordCriteria.serverRules.add("Shiny Rule")
-        }
-
-        // Check Perfect IVs Hatches
-        if (( pokeGlance.spawnSource == "Egg" || Config.data.server.perfectCheck ) && pokeGlance.isPerfectIV) {
-            result.discordCriteria.isServerMessage = true
-            result.discordCriteria.serverLabels.add("Perfect")
-            result.discordCriteria.serverRules.add("Perfect Rule")
-        }
-
-        // Check Label Spawns
-        val serverLabels = Config.data.server.labelCheck
-        val hasServerLabel = serverLabels.firstOrNull() { it.lowercase() in pokeGlance.hasLabels.lowercase()} ?: ""
-        if ( pokeGlance.spawnSource != "Egg" && hasServerLabel != "" ) {
-            result.discordCriteria.isServerMessage = true
-            result.discordCriteria.serverLabels.add(pokeGlance.hasLabels)
-            result.discordCriteria.serverRules.add("Label Rule")
-        }
-
-        if (pokeGlance.spawnSource != "Egg") {
-            // Check Special Spawns
-            val isServerSpecial = Config.data.server.specialCheck.any {
-                it.speciesName.equals(pokeGlance.species, ignoreCase = true) &&
-                        (!it.shinyCheck || pokeGlance.isShiny)
+        if (!isServerBlacklist) {
+            // Check Allowed Spawn Types
+            if (Config.data.server.checkUnknownSpawns && pokeGlance.spawnSource == "Unknown") {
+                result.discordCriteria.isServerAllowedSpawn = true
+            } else if (pokeGlance.spawnSource == "Known" || pokeGlance.spawnSource == "Egg") {
+                result.discordCriteria.isServerAllowedSpawn = true
+            } else {
+                result.discordCriteria.isServerAllowedSpawn = false
             }
-            if (isServerSpecial) {
+
+            // Check Shiny Spawns
+            if (Config.data.server.shinyCheck && pokeGlance.isShiny) {
                 result.discordCriteria.isServerMessage = true
-                result.discordCriteria.serverLabels.add("Special")
-                result.discordCriteria.serverRules.add("Special Rule")
+                result.discordCriteria.serverLabels.add("Shiny")
+                result.discordCriteria.serverRules.add("Shiny Rule")
+            }
+
+            // Check Perfect IVs Hatches
+            if ((pokeGlance.spawnSource == "Egg" || Config.data.server.perfectCheck) && pokeGlance.isPerfectIV) {
+                result.discordCriteria.isServerMessage = true
+                result.discordCriteria.serverLabels.add("Perfect")
+                result.discordCriteria.serverRules.add("Perfect Rule")
+            }
+
+            // Check Label Spawns
+            val serverLabels = Config.data.server.labelCheck
+            val hasServerLabel = serverLabels.firstOrNull() { it.lowercase() in pokeGlance.hasLabels.lowercase()} ?: ""
+            if ( pokeGlance.spawnSource != "Egg" && hasServerLabel != "" ) {
+                result.discordCriteria.isServerMessage = true
+                result.discordCriteria.serverLabels.add(pokeGlance.hasLabels)
+                result.discordCriteria.serverRules.add("Label Rule")
+            }
+
+            if (pokeGlance.spawnSource != "Egg") {
+                // Check Special Spawns
+                val isServerSpecial = Config.data.server.specialCheck.any {
+                    it.speciesName.equals(pokeGlance.species, ignoreCase = true) &&
+                            (!it.shinyCheck || pokeGlance.isShiny)
+                }
+                if (isServerSpecial) {
+                    result.discordCriteria.isServerMessage = true
+                    result.discordCriteria.serverLabels.add("Special")
+                    result.discordCriteria.serverRules.add("Special Rule")
+                }
             }
         }
 
