@@ -40,7 +40,7 @@ object ServerBlacklistChecks : PAServerSubcommand {
                     val lines = buildString {
                         appendLine("Server blacklist targets:")
                         rules.forEachIndexed { i, r ->
-                            appendLine("  ${i + 1}. ${r.speciesName}  shinyOnly=${r.shinyCheck}")
+                            appendLine("  ${i + 1}. ${r.speciesName} includeShiny=${r.shinyCheck}")
                         }
                     }
                     ctx.source.sendSuccess({ Component.literal(lines.trimEnd()) }, false)
@@ -63,14 +63,14 @@ object ServerBlacklistChecks : PAServerSubcommand {
             .then(literal("Add")
                 .then(argument("species", StringArgumentType.word())
                     .suggests(SPECIES_SUGGESTER)
-                    .then(argument("shinyOnly", BoolArgumentType.bool())
+                    .then(argument("includeShiny", BoolArgumentType.bool())
                         .suggests(BOOL_SUGGESTER)
                         .executes { ctx ->
                             val species = StringArgumentType.getString(ctx, "species")
-                            val shinyOnly = BoolArgumentType.getBool(ctx, "shinyOnly")
+                            val shinyOnly = BoolArgumentType.getBool(ctx, "includeShiny")
                             if (Config.addServerBlacklistRule(species, shinyOnly)) {
                                 ctx.source.sendSuccess({
-                                    Component.literal("Added: ${species.lowercase()}  shinyOnly=$shinyOnly")
+                                    Component.literal("Added: ${species.lowercase()}  includeShiny=$shinyOnly")
                                 }, true)
                                 1
                             } else {
@@ -83,7 +83,7 @@ object ServerBlacklistChecks : PAServerSubcommand {
                     val shinyOnly = false
                     if (Config.addServerBlacklistRule(species, shinyOnly)) {
                         ctx.source.sendSuccess({
-                            Component.literal("Added: ${species.lowercase()}  shinyOnly=$shinyOnly (default)")
+                            Component.literal("Added: ${species.lowercase()}  includeShiny=$shinyOnly (default)")
                         }, true)
                         1
                     } else {
@@ -97,14 +97,14 @@ object ServerBlacklistChecks : PAServerSubcommand {
                 .then(argument("species", StringArgumentType.word())
                     .suggests(SPECIES_SUGGESTER)
                     // Explicit shinyOnly
-                    .then(argument("shinyOnly", BoolArgumentType.bool())
+                    .then(argument("includeShiny", BoolArgumentType.bool())
                         .suggests(BOOL_SUGGESTER)
                         .executes { ctx ->
                             val species = StringArgumentType.getString(ctx, "species")
-                            val shinyOnly = BoolArgumentType.getBool(ctx, "shinyOnly")
+                            val shinyOnly = BoolArgumentType.getBool(ctx, "includeShiny")
                             if (Config.removeServerBlacklistRule(species, shinyOnly)) {
                                 ctx.source.sendSuccess({
-                                    Component.literal("Removed: ${species.lowercase()}  shinyOnly=$shinyOnly")
+                                    Component.literal("Removed: ${species.lowercase()}  includeShiny=$shinyOnly")
                                 }, true)
                                 1
                             } else {

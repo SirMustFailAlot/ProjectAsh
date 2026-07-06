@@ -26,8 +26,12 @@ object RuleEngine {
 
         val isServerBlacklist = Config.data.server.blacklistCheck.any {
             it.speciesName.equals(pokeGlance.species.replace(" ", "-"), ignoreCase = true) &&
-                    (!it.shinyCheck || pokeGlance.isShiny)
+            (
+                it.shinyCheck ||               // blacklist both normal + shiny
+                (!it.shinyCheck && !pokeGlance.isShiny) // blacklist only normal
+            )
         }
+
         if (!isServerBlacklist) {
             // Check Allowed Spawn Types
             if (Config.data.server.checkUnknownSpawns && pokeGlance.spawnSource == "Unknown") {
