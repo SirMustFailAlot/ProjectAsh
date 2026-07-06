@@ -16,7 +16,8 @@ object ProjectAshCommand {
         ServerShinyChecks,
         ServerCheckUnknownSpawns,
         ServerLabelChecks,
-        ServerSpecialChecks
+        ServerSpecialChecks,
+        ServerBlacklistChecks
     )
 
     private val playerSubs: List<PAPlayerSubcommand> = listOf(
