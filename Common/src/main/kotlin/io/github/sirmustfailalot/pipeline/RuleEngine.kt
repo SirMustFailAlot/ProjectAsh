@@ -25,7 +25,7 @@ object RuleEngine {
         val result = RuleEvaluationResult()
 
         val isServerBlacklist = Config.data.server.blacklistCheck.any {
-            it.speciesName.equals(pokeGlance.species, ignoreCase = true) &&
+            it.speciesName.equals(pokeGlance.species.replace(" ", "-"), ignoreCase = true) &&
                     (!it.shinyCheck || pokeGlance.isShiny)
         }
         if (!isServerBlacklist) {
@@ -54,10 +54,10 @@ object RuleEngine {
 
             // Check Label Spawns
             val serverLabels = Config.data.server.labelCheck
-            val hasServerLabel = serverLabels.firstOrNull() { it in pokeGlance.hasLabels } ?: ""
-            if (pokeGlance.spawnSource != "Egg" && hasServerLabel != "") {
+            val hasServerLabel = serverLabels.firstOrNull() { it.lowercase() in pokeGlance.hasLabels.lowercase()} ?: ""
+            if ( pokeGlance.spawnSource != "Egg" && hasServerLabel != "" ) {
                 result.discordCriteria.isServerMessage = true
-                result.discordCriteria.serverLabels.add(hasServerLabel)
+                result.discordCriteria.serverLabels.add(pokeGlance.hasLabels)
                 result.discordCriteria.serverRules.add("Label Rule")
             }
 
