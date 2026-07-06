@@ -24,6 +24,7 @@ object PokeStream {
 
     data class PokemonLifespan(
         // Spawning and Entity Context
+        val isWild: Boolean,
         val pokemon: Pokemon,
         val uuidPokemon: UUID? = null,
         val uuidEntity: WeakReference<PokemonEntity>? = null,
@@ -52,9 +53,9 @@ object PokeStream {
         pokemonEntity: PokemonEntity,
         pokemonSpawnedBy: String
     ): PokemonLifespan {
-        val uuidPokemon = pokemonEntity?.pokemon?.uuid
+        var isWild = pokemonEntity.pokemon.isWild()
+        val uuidPokemon = pokemonEntity.pokemon.uuid
         var uuidEntity: WeakReference<PokemonEntity>? = null
-        val spawnSource = pokemonSpawnedBy
         var world: ServerLevel? = null
         var spawnDimension: String? = null
         var spawnPos: String? = null
@@ -82,10 +83,11 @@ object PokeStream {
 
         // Run common mappings
         return buildLifespanSnapshot(
+            isWild = isWild,
             pokemon = pokemonEntity.pokemon,
             uuidPokemon = uuidPokemon,
             uuidEntity = uuidEntity,
-            spawnSource = spawnSource,
+            spawnSource = pokemonSpawnedBy,
             spawnDimension = spawnDimension ?: "",
             spawnPos = spawnPos ?: "",
             spawnClosestPlayer = spawnClosestPlayer ?: ""
@@ -99,6 +101,7 @@ object PokeStream {
     ): PokemonLifespan {
         // Eggs do not have world coordinate contexts, default to safe inventory titles
         return buildLifespanSnapshot(
+            isWild = false,
             pokemon = pokemon,
             uuidPokemon = pokemon.uuid, // Pull safe non-null data UUID directly
             uuidEntity = null,          // No world entity exists
@@ -111,6 +114,7 @@ object PokeStream {
 
     // Shared internal utility helper to run your naming, mapping, and sprite calculations uniformly
     private fun buildLifespanSnapshot(
+        isWild: Boolean,
         pokemon: Pokemon,
         uuidPokemon: UUID?,
         uuidEntity: WeakReference<PokemonEntity>?,
@@ -199,6 +203,7 @@ object PokeStream {
         }
 
         return PokemonLifespan(
+            isWild = isWild,
             pokemon = pokemon,
             uuidPokemon = uuidPokemon,
             uuidEntity = uuidEntity,

@@ -30,6 +30,8 @@ object BattleLifecycle {
         val battle = event.battle
         val server = server ?: return
 
+        if (battle.isPvW) return
+
         val players = battle.actors
             .filter { it.type == ActorType.PLAYER }
             .mapNotNull { server.playerList.getPlayer(it.uuid) }
@@ -53,6 +55,8 @@ object BattleLifecycle {
     fun onBattleCompleted(event: BattleVictoryEvent) {
         val battle = event.battle
         val server = server ?: return
+        if (battle.isPvW) return
+
         val isPvP = battle.isPvP
         val trainers = battle.actors.filter { it.type == ActorType.NPC }
         if (!isPvP && trainers.isEmpty()) return
