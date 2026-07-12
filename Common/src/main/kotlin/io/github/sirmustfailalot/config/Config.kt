@@ -11,7 +11,7 @@ import java.io.File
 // ── Types ─────────────────────────────────────────────────────────────────────
 data class PokeRule(
     var speciesName: String = "shuckle",
-    var shinyCheck: Boolean = false
+    var shinyFlag: ShinyFlag = ShinyFlag.INCLUDE
 )
 
 data class CatchEmAllRule(
@@ -23,6 +23,12 @@ data class SpriteEntry(
     var standard: String = "",
     var shiny: String = ""
 )
+
+enum class ShinyFlag {
+    INCLUDE,
+    EXCLUDE,
+    ONLY
+}
 
 data class ServerRule(
     var ingameEnabled: Boolean = true,
@@ -86,7 +92,7 @@ object Config {
         if (normalised.isEmpty()) return false
 
         // Only modify if not already there
-        if (data.server.labelCheck.contains(normalised)) return false
+        if (data.server.labelCheck.any { it.equals(normalised, ignoreCase = true) }) return false
 
         write {
             val current = it.server.labelCheck.toMutableList()
@@ -100,11 +106,11 @@ object Config {
         val normalised = label.trim().lowercase()
         if (normalised.isEmpty()) return false
 
-        if (!data.server.labelCheck.contains(normalised)) return false
+        if (data.server.labelCheck.none { it.equals(normalised, ignoreCase = true) }) return false
 
         write {
             val current = it.server.labelCheck.toMutableList()
-            current.remove(normalised)
+            current.removeIf { it.equals(normalised, ignoreCase = true) }
             it.server.labelCheck = current
         }
         return true
@@ -112,8 +118,14 @@ object Config {
 
     fun getLabelCheck(): List<String> = data.server.labelCheck
 
-    fun addServerSpecialRule(species: String, shinyOnly: Boolean): Boolean {
-        val rule = canonicalRule(species, shinyOnly)
+    fun clearLabelChecks(): Boolean {
+        if (data.server.labelCheck.isEmpty()) return false
+        write { it.server.labelCheck = emptyList() }
+        return true
+    }
+
+    fun addServerSpecialRule(species: String, shinyFlag: ShinyFlag): Boolean {
+        val rule = canonicalRule(species, shinyFlag)
         // no-op if already present
         if (Config.data.server.specialCheck.any { it == rule }) return false
 
@@ -125,8 +137,8 @@ object Config {
         return true
     }
 
-    fun removeServerSpecialRule(species: String, shinyOnly: Boolean): Boolean {
-        val rule = canonicalRule(species, shinyOnly)
+    fun removeServerSpecialRule(species: String, shinyFlag: ShinyFlag): Boolean {
+        val rule = canonicalRule(species, shinyFlag)
         if (!Config.data.server.specialCheck.contains(rule)) return false
 
         write {
@@ -145,8 +157,8 @@ object Config {
         return true
     }
 
-    fun addServerBlacklistRule(species: String, shinyOnly: Boolean): Boolean {
-        val rule = canonicalRule(species, shinyOnly)
+    fun addServerBlacklistRule(species: String, shinyFlag: ShinyFlag): Boolean {
+        val rule = canonicalRule(species, shinyFlag)
         // no-op if already present
         if (Config.data.server.blacklistCheck.any { it == rule }) return false
 
@@ -158,8 +170,8 @@ object Config {
         return true
     }
 
-    fun removeServerBlacklistRule(species: String, shinyOnly: Boolean): Boolean {
-        val rule = canonicalRule(species, shinyOnly)
+    fun removeServerBlacklistRule(species: String, shinyFlag: ShinyFlag): Boolean {
+        val rule = canonicalRule(species, shinyFlag)
         if (!Config.data.server.blacklistCheck.contains(rule)) return false
 
         write {
@@ -209,9 +221,9 @@ object Config {
         return true
     }
 
-    fun addPlayerSpecialRule(playerName: String, species: String, shinyOnly: Boolean): Boolean {
+    fun addPlayerSpecialRule(playerName: String, species: String, shinyFlag: ShinyFlag): Boolean {
         val p = ensurePlayer(playerName)
-        val rule = canonicalRule(species, shinyOnly)
+        val rule = canonicalRule(species, shinyFlag)
         if (p.specialCheck.any { it == rule }) return false
 
         write {
@@ -221,9 +233,9 @@ object Config {
         return true
     }
 
-    fun removePlayerSpecialRule(playerName: String, species: String, shinyOnly: Boolean): Boolean {
+    fun removePlayerSpecialRule(playerName: String, species: String, shinyFlag: ShinyFlag): Boolean {
         val p = ensurePlayer(playerName)
-        val rule = canonicalRule(species, shinyOnly)
+        val rule = canonicalRule(species, shinyFlag)
         if (!p.specialCheck.contains(rule)) return false
 
         write {
@@ -260,10 +272,13 @@ object Config {
 
     /** Make a canonical rule for reliable equality/contains/remove operations. */
     private fun norm(s: String) = s.trim().lowercase()
-    private fun canonicalRule(species: String, shinyOnly: Boolean) =
+    private fun canonicalRule(
+        species: String,
+        shinyFlag: ShinyFlag = ShinyFlag.INCLUDE
+    ): PokeRule =
         PokeRule(
             speciesName = norm(species),
-            shinyCheck = shinyOnly
+            shinyFlag = shinyFlag
         )
 
     // ── Internals ─────────────────────────────────────────────────────────────
