@@ -1,16 +1,16 @@
 package io.github.sirmustfailalot.projectash.commands
 
 import com.mojang.brigadier.CommandDispatcher
+import io.github.sirmustfailalot.projectash.commands.menu.ProjectAshMenus
+import io.github.sirmustfailalot.projectash.commands.player.PlayerCatchEmAll
+import io.github.sirmustfailalot.projectash.commands.player.PlayerSpecialChecks
+import io.github.sirmustfailalot.projectash.commands.server.*
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands.literal
 
 object ProjectAshCommand {
-
-    // Register your server and player subcommands here:
     private val serverSubs: List<PAServerSubcommand> = listOf(
-        ServerDiscordEnabled,
-        ServerDiscordUpdateWebhook,
-        ServerDiscordThumbnails,
+        ServerDiscord,
         ServerInGameEnabled,
         ServerPerfectChecks,
         ServerShinyChecks,
@@ -26,17 +26,21 @@ object ProjectAshCommand {
     )
 
     fun register(dispatcher: CommandDispatcher<CommandSourceStack>) {
-        val root = literal("ProjectAsh")
+        val root = literal("ProjectAsh").executes { ctx ->
+            if (ctx.source.hasPermission(3)) ProjectAshMenus.root(ctx.source)
+            else ProjectAshMenus.player(ctx.source)
+            1
+        }
 
-        // /projectash server ...
         val serverRoot = literal("Server")
-            .requires { it.hasPermission(3) } // lock server settings to ops
-        serverSubs.forEach { sub -> serverRoot.then(sub.build()) }
+            .requires { it.hasPermission(3) }
+            .executes { ctx -> ProjectAshMenus.server(ctx.source); 1 }
+        serverSubs.forEach { serverRoot.then(it.build()) }
         root.then(serverRoot)
 
-        // /projectash player ...
         val playerRoot = literal("Player")
-        playerSubs.forEach { sub -> playerRoot.then(sub.build()) }
+            .executes { ctx -> ProjectAshMenus.player(ctx.source); 1 }
+        playerSubs.forEach { playerRoot.then(it.build()) }
         root.then(playerRoot)
 
         dispatcher.register(root)
