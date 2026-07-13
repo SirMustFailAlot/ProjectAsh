@@ -29,7 +29,7 @@ public class ChatScreenMixin {
                 if (itemInfo != null) {
                     ItemStack hoveredStack = itemInfo.getItemStack();
                     String namespace = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(hoveredStack.getItem()).getNamespace();
-                    if (namespace.equals("cobbletcg")) {
+                    if (namespace.equals("cobbletcg") || namespace.equals(("cobblemon"))) {
                         ChatPreviewManager.INSTANCE.setHoveredPreviewStack(hoveredStack);
                     }
                 }

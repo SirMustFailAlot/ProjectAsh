@@ -46,9 +46,11 @@ object ProjectAshFabric : ModInitializer {
         ProjectAsh.initialise()
         ServerEntityEvents.ENTITY_LOAD.register { entity, world ->
             if (entity is PokemonEntity) {
-                SpawnLifecycle.onSpawn(
-                    pokemonEntity = entity,
-                    spawnReason = "Unknown"
+                SpawnLifecycle.scheduler.schedule({
+                    SpawnLifecycle.onSpawn(
+                        pokemonEntity = entity,
+                        spawnReason = "Unknown"
+                    )}, 1, TimeUnit.SECONDS
                 )
             }
         }
