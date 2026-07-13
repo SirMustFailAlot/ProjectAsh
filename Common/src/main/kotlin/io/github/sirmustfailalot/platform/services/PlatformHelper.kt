@@ -1,5 +1,7 @@
 package io.github.sirmustfailalot.platform.services
 
+import net.minecraft.world.item.ItemStack
+
 interface PlatformHelper {
     /**
      * Gets the name of the current platform
@@ -15,6 +17,7 @@ interface PlatformHelper {
      * @return True if the mod is loaded, false otherwise.
      */
     fun isModLoaded(modId: String): Boolean
+    fun sendShowcasePacketToServer(itemStack: net.minecraft.world.item.ItemStack)
 
     /**
      * Check if the game is currently in a development environment.

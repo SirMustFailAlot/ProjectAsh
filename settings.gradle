@@ -3,16 +3,16 @@ pluginManagement {
         mavenCentral()
         gradlePluginPortal()
         maven {
+            name = 'Fabric'
+            url = 'https://maven.fabricmc.net/'
+        }
+        maven {
             name = 'Architectury'
             url = 'https://maven.architectury.dev/'
         }
         maven {
             name = 'Forge'
             url = 'https://maven.minecraftforge.net/'
-        }
-        maven {
-            name = 'Fabric'
-            url = 'https://maven.fabricmc.net/'
         }
         maven {
             name = 'cobblemon'

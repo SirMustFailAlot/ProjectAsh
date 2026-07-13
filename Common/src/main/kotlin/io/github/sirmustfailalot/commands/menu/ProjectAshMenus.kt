@@ -29,6 +29,7 @@ object ProjectAshMenus {
         listOf(
             MenuButton("Back", "/ProjectAsh", colour = ChatFormatting.GRAY),
             MenuButton("Discord", "/ProjectAsh Server Discord", colour = ChatFormatting.BLUE),
+            MenuButton("Showcase", "/ProjectAsh Server Showcase", colour = ChatFormatting.GREEN),
             MenuButton("InGame", "/ProjectAsh Server InGame", colour = ChatFormatting.AQUA),
             MenuButton("Perfect", "/ProjectAsh Server Perfect", colour = ChatFormatting.LIGHT_PURPLE),
             MenuButton("Shiny", "/ProjectAsh Server Shiny", colour = ChatFormatting.GOLD),

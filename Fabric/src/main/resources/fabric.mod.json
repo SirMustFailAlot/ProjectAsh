@@ -4,27 +4,36 @@
     "version": "${version}",
   
     "name": "ProjectAsh",
-    "description": "This is an example description! Tell everyone what your mod is about!",
+    "description": "ProjectAsh aims to announce everything, everywhere. Ingame? Sure! Discord? Heck Yeah buddy!",
+    "icon": "ProjectAsh-Square.jpg",
     "authors": [
-      "Me!"
+      "sirmustfailalot"
     ],
     "contact": {
-      "homepage": "https://fabricmc.net/",
-      "sources": "https://github.com/FabricMC/fabric-example-mod"
+      "homepage": "",
+      "sources": "https://github.com/SirMustFailAlot/ProjectAsh"
     },
   
     "license": "CC0-1.0",
-    "icon": "assets/project_ash/icon.png",
   
     "environment": "*",
     "entrypoints": {
       "main": [
         {
-          "value": "io.github.sirmustfailalot.ProjectAshFabric",
-          "adapter": "kotlin"
+          "adapter": "kotlin",
+          "value": "io.github.sirmustfailalot.projectash.fabric.ProjectAshFabric"
+        }
+      ],
+      "client": [
+        {
+          "adapter": "kotlin",
+          "value": "io.github.sirmustfailalot.projectash.fabric.ProjectAshFabricClient"
         }
       ]
     },
+    "mixins": [
+      "projectash.mixins.json"
+    ],
   
     "depends": {
       "fabricloader": "*",

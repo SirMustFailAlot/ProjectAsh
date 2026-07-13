@@ -30,11 +30,16 @@ enum class ShinyFlag {
     ONLY
 }
 
+data class ShowcaseRule(
+    var tcgEnabled: Boolean = true
+)
+
 data class ServerRule(
     var ingameEnabled: Boolean = true,
     var discordEnabled: Boolean = true,
     var discordWebhook: String = "https://your.webhook.url/here",
     var discordThumbnails: Boolean = true,
+    var showcase: ShowcaseRule = ShowcaseRule(),
     var checkUnknownSpawns: Boolean = false,
     var perfectCheck: Boolean = false,
     var shinyCheck: Boolean = true,
@@ -83,6 +88,7 @@ object Config {
     fun setServerDiscordEnabled(enabled: Boolean) = write { it.server.discordEnabled = enabled }
     fun setServerDiscordWebhook(url: String) = write { it.server.discordWebhook = url }
     fun setServerDiscordThumbnails(enabled: Boolean) = write { it.server.discordThumbnails = enabled }
+    fun setServerShowcaseEnabledTCG(enabled: Boolean) = write { it.server.showcase.tcgEnabled = enabled }
     fun setServerShinyCheck(enabled: Boolean) = write { it.server.shinyCheck = enabled }
     fun setServerPerfectCheck(enabled: Boolean) = write { it.server.perfectCheck = enabled }
     fun setCheckUnknownSpawns(enabled: Boolean) = write { it.server.checkUnknownSpawns = enabled }
