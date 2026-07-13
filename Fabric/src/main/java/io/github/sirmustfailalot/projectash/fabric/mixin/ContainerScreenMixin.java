@@ -1,7 +1,7 @@
 package io.github.sirmustfailalot.projectash.fabric.mixin;
 
 import io.github.sirmustfailalot.projectash.client.CommonClientHandler;
-import io.github.sirmustfailalot.projectash.fabric.ProjectAshFabricClient;
+import io.github.sirmustfailalot.projectash.fabric.ModKeyBindings; // Updated Import
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.world.inventory.Slot;
 import org.spongepowered.asm.mixin.Mixin;
@@ -17,7 +17,8 @@ public class ContainerScreenMixin {
 
     @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)
     private void onScreenKeyPressed(int keyCode, int scanCode, int modifiers, CallbackInfoReturnable<Boolean> cir) {
-        if (ProjectAshFabricClient.INSTANCE.getShowcaseKeyBind().matches(keyCode, scanCode)) {
+        // Point to the safe standalone binding reference
+        if (ModKeyBindings.INSTANCE.getShowcaseKeyBind().matches(keyCode, scanCode)) {
             if (this.hoveredSlot != null && this.hoveredSlot.hasItem()) {
                 CommonClientHandler.INSTANCE.attemptShowcase(this.hoveredSlot.getItem());
                 cir.setReturnValue(true);

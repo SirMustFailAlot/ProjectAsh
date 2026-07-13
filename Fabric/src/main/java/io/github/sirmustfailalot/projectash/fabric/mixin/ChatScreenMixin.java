@@ -39,31 +39,26 @@ public class ChatScreenMixin {
             ChatPreviewManager.INSTANCE.clear();
         }
 
-        // 2. Render Phase: Draw the card asset relative to mouse positions
         ItemStack activePreview = ChatPreviewManager.INSTANCE.getHoveredPreviewStack();
         if (activePreview != null && !activePreview.isEmpty()) {
 
-            // ADJUSTED: Shifting renderY to -160f lifts the huge 1.5x upscaled card image
-            // safely into the sky above the default text box layout context!
+            ItemStack singleItemPreview = activePreview.copy();
+            singleItemPreview.setCount(1);
+
             float renderX = (float) mouseX + 15f;
             float renderY = (float) mouseY - 160f;
 
-            // Open up the isolated transformation matrix context group
             PoseStack poseStack = guiGraphics.pose();
             poseStack.pushPose();
 
-            // Move the matrix directly to our dynamic mouse coordinates
             poseStack.translate(renderX, renderY, 0f);
 
-            // Keep your awesome 1.5x large size upgrade
             float scaleFactor = 9.0f;
             poseStack.scale(scaleFactor, scaleFactor, 1f);
 
-            // Render the live card model using the working GUI graphics context pipeline
-            guiGraphics.renderItem(activePreview, 0, 0);
-            guiGraphics.renderItemDecorations(minecraft.font, activePreview, 0, 0);
+            guiGraphics.renderItem(singleItemPreview, 0, 0);
+            guiGraphics.renderItemDecorations(minecraft.font, singleItemPreview, 0, 0);
 
-            // Safely close out our isolated matrix modifications
             poseStack.popPose();
         }
     }
