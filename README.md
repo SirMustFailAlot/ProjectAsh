@@ -90,3 +90,10 @@ When using whitelist or blacklist mutation commands (`add`), you can attach an o
 /ProjectAsh server blacklist add pidgey INCLUDE
 /ProjectAsh server label add "Ultra Beast"
 /ProjectAsh player catchemall localspawnsonly enable
+```
+---
+🤝 Credits
+
+This project is proudly built as an extension of Cobblemon. We are incredibly grateful to the Cobblemon authors, artists, and developers whose hard work and open-source API made this enhancement possible.
+
+Note: Project Ash is an unofficial fan-made addon and is not affiliated with or endorsed by the official Cobblemon team.
