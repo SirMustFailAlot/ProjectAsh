@@ -1,0 +1,13 @@
+{
+  "required": true,
+  "package": "io.github.sirmustfailalot.projectash.fabric.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "ContainerScreenMixin",
+    "ChatScreenMixin"
+  ],
+  "client": [],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

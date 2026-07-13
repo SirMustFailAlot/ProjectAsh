@@ -14,17 +14,25 @@
     },
   
     "license": "CC0-1.0",
-    "icon": "assets/project_ash/icon.png",
   
     "environment": "*",
     "entrypoints": {
       "main": [
         {
-          "value": "io.github.sirmustfailalot.ProjectAshFabric",
-          "adapter": "kotlin"
+          "adapter": "kotlin",
+          "value": "io.github.sirmustfailalot.projectash.fabric.ProjectAshFabric"
+        }
+      ],
+      "client": [
+        {
+          "adapter": "kotlin",
+          "value": "io.github.sirmustfailalot.projectash.fabric.ProjectAshFabricClient"
         }
       ]
     },
+    "mixins": [
+      "projectash.mixins.json"
+    ],
   
     "depends": {
       "fabricloader": "*",

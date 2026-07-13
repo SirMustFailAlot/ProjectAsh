@@ -12,6 +12,7 @@ object ProjectAshCommand {
     private val serverSubs: List<PAServerSubcommand> = listOf(
         ServerDiscord,
         ServerInGameEnabled,
+        ServerShowcaseChecks,
         ServerPerfectChecks,
         ServerShinyChecks,
         ServerCheckUnknownSpawns,
