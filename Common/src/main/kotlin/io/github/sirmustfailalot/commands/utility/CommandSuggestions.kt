@@ -57,4 +57,10 @@ object CommandSuggestions {
         }
         return (if (values.isEmpty()) fallbackSpecies else values).distinct().sorted()
     }
+
+    val CatchEmAllModes: SuggestionProvider<CommandSourceStack> = SuggestionProvider { _, builder ->
+        listOf("Disabled", "LivingDex", "ShinyDex", "EveryDex", "FormDex", "MasterLivingDex").forEach(builder::suggest)
+        builder.buildFuture()
+    }
+
 }

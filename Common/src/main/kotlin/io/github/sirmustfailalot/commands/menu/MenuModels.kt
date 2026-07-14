@@ -18,6 +18,7 @@ enum class MenuAction(
     val colour: ChatFormatting
 ) {
     CHECK("Check", "Check", colour = ChatFormatting.YELLOW),
+    UPDATE("Update", "Update", MenuClickMode.SUGGEST, ChatFormatting.BLUE),
     ADD("Add", "Add", MenuClickMode.SUGGEST, ChatFormatting.GREEN),
     REMOVE("Remove", "Remove", MenuClickMode.SUGGEST, ChatFormatting.RED),
     CLEAR("Clear", "Clear", colour = ChatFormatting.DARK_RED),

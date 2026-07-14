@@ -3,6 +3,10 @@ package io.github.sirmustfailalot.projectash.commands.player
 import com.mojang.brigadier.arguments.StringArgumentType
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
 import com.mojang.brigadier.context.CommandContext
+import net.minecraft.commands.CommandSourceStack
+import net.minecraft.commands.Commands.argument
+import net.minecraft.commands.Commands.literal
+import net.minecraft.network.chat.Component
 import io.github.sirmustfailalot.projectash.commands.PAPlayerSubcommand
 import io.github.sirmustfailalot.projectash.commands.menu.*
 import io.github.sirmustfailalot.projectash.commands.utility.CommandSuggestions
@@ -12,10 +16,7 @@ import io.github.sirmustfailalot.projectash.commands.utility.prefixedStatus
 import io.github.sirmustfailalot.projectash.commands.utility.neutralMessage
 import io.github.sirmustfailalot.projectash.config.Config
 import io.github.sirmustfailalot.projectash.config.ShinyFlag
-import net.minecraft.commands.CommandSourceStack
-import net.minecraft.commands.Commands.argument
-import net.minecraft.commands.Commands.literal
-import net.minecraft.network.chat.Component
+
 
 object PlayerSpecialChecks : PAPlayerSubcommand {
     private val section = MenuSection(
