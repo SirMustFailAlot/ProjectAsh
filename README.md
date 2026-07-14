@@ -15,9 +15,10 @@
 * **Discord Match Summaries:** Dispatches rich telemetry data upon battle completion, detailing the Pokémon deployed, their living/fainted condition, and automated sprite thumbnails.
 * **Fog of War Protection:** Keeps unseen or un-battled opponent slots hidden behind a `???` layout to avoid strategic scouting.
 
-### 🃏 CobbleTCG Showcases
-* **Hotkey Interactivity:** Players can hit a client-bound hotkey while hovering over an inventory asset to instantly present their cards, booster packs, or custom bundles into the global chat stream.
-* **Hover Tooltips:** Chat components support a dynamic hover function, rendering detailed graphics and specifications directly above the text line for other users on the server.
+### 🃏 Showcases
+* **CobbleTCG Integration** Announce your cool cards within the chat, with the ability to see the card when hovering over the card name. This can be shown off either by pressing the showcase key in hand, or by hovering an item in the inventory.
+* **Pokemon Announcing Integration** When an announcement from pokemon spawns, appear, these will be integrated with showcase! Hover over the species name to see the pokemon sprite.
+* **Cord Teleportation** Enhancing announcements that have cords, these will now have a clickable cord position that will teleport you.
 ---
 
 ## 📦 Installation

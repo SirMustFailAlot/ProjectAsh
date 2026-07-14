@@ -87,7 +87,8 @@ object DeliveryAnnouncer {
             announceDetails.playerCriteria.forEach { (playerName, notification) ->
                 val ingameMessage = UtilityAnnouncer.renderLabeledMessage(
                     notification.finalLabels.toList(),
-                    inGameText
+                    inGameText,
+                    pokeGlance
                 )
                 ingame(playerName = playerName, messageBody = ingameMessage)
             }

@@ -29,22 +29,24 @@ object SpawnLifecycle {
         pokemonEntity: PokemonEntity,
         spawnReason: String = "Unknown"
     ) {
-        val pokeGlance = PokeStream.pokeGlance(pokemonEntity, spawnReason)
-        pokeGlance.evaluationResult = RuleEngine.evaluateSpawn(pokeGlance)
+        val pokeCheck: Boolean = pokeSpan.containsKey(pokemonEntity.pokemon.uuid)
+        if (!pokeCheck) {
+            val pokeGlance = PokeStream.pokeGlance(pokemonEntity, spawnReason)
+            pokeGlance.evaluationResult = RuleEngine.evaluateSpawn(pokeGlance)
 
-        if (!pokeGlance.isWild) return              // Not Wild Pokemon, bail out
-        if ( !pokeGlance.evaluationResult!!.discordCriteria.isServerAllowedSpawn || (!pokeGlance.evaluationResult!!.discordCriteria.isServerMessage && pokeGlance.evaluationResult!!.playerCriteria.isEmpty())) {
-            return
+            if (!pokeGlance.isWild) return              // Not Wild Pokemon, bail out
+            if (!pokeGlance.evaluationResult!!.discordCriteria.isServerAllowedSpawn || (!pokeGlance.evaluationResult!!.discordCriteria.isServerMessage && pokeGlance.evaluationResult!!.playerCriteria.isEmpty())) {
+                return
+            }
+            if (pokeGlance.uuidPokemon == null) return
+
+            pokeSpan[pokeGlance.uuidPokemon] = pokeGlance
+
+            SpawningAnnouncer.announceSpawn(
+                pokeGlance = pokeGlance,
+                announceDetails = pokeGlance.evaluationResult!!
+            )
         }
-        if (pokeGlance.uuidPokemon == null) return
-
-        pokeSpan[pokeGlance.uuidPokemon] = pokeGlance
-
-        SpawningAnnouncer.announceSpawn(
-            pokeGlance = pokeGlance,
-            announceDetails = pokeGlance.evaluationResult!!
-        )
-
     }
 
     fun onCapture(

@@ -8,10 +8,12 @@ import com.cobblemon.mod.common.api.pokemon.stats.Stats
 import com.cobblemon.mod.common.entity.pokemon.PokemonEntity
 import com.cobblemon.mod.common.pokemon.Pokemon
 import com.cobblemon.mod.common.util.toVec3d
+import com.cobblemon.mod.common.item.PokemonItem
 
 // Minecraft Classes
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.resources.ResourceLocation
+import net.minecraft.world.item.ItemStack
 import org.slf4j.LoggerFactory
 
 // Java Classes
@@ -44,11 +46,11 @@ object PokeStream {
         val isShiny: Boolean,
         val isPerfectIV: Boolean,
         val sprite: String = "",
+        val pokemonItemStack: ItemStack,
 
         var evaluationResult: RuleEvaluationResult? = null
     )
 
-    // YOUR ORIGINAL POKEGLANCE (Kept completely untouched for Spawning)
     fun pokeGlance(
         pokemonEntity: PokemonEntity,
         pokemonSpawnedBy: String
@@ -174,6 +176,7 @@ object PokeStream {
         }
 
         val pokemonResourceIdentifier = pokemon.species.resourceIdentifier
+        val pokemonItemStack: ItemStack = PokemonItem.from(pokemon)
         val pokemonLabelCheck = listOf("legendary", "mythical", "ultra_beast", "paradox")
         val pokemonLabelRaw = pokemon.form.labels.firstOrNull { it in pokemonLabelCheck } ?: ""
         val pokemonLabels = when (pokemonLabelRaw.lowercase()) {
@@ -215,6 +218,7 @@ object PokeStream {
             speciesWithForm = speciesWithForm,
             speciesForm = formVariation ?: "",
             resourceIdentifier = pokemonResourceIdentifier,
+            pokemonItemStack = pokemonItemStack,
             hasLabels = pokemonLabels,
             isShiny = isShiny,
             isPerfectIV = isPerfectIV,
