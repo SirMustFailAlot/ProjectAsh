@@ -9,6 +9,7 @@
 * **Rarity Tier Labels:** Formats announcements using built-in labels for specific groups like `Legendary`, `Mythical`, `Ultra Beast`, and `Paradox`.
 * **Egg Hatch Notifications:** Announces to the community when a player successfully hatches an egg.
 * **Entity Load Catching:** Optional `unknownspawns` tracking logs entities loading directly from world generation/chunk loads.
+* **CatchEmAll Dex Modes:** As a player, chose to enable CatchEmAll and have triggers if a Pokemon that spawns that would contribute to your LivingDex, FormDex, ShinyDex etc.
 
 ### ⚔️ Battle Tracking & Fog of War
 * **In-Game Start Flags:** Automatically prints a announcement when an engagement initializes.
@@ -19,6 +20,33 @@
 * **CobbleTCG Integration** Announce your cool cards within the chat, with the ability to see the card when hovering over the card name. This can be shown off either by pressing the showcase key in hand, or by hovering an item in the inventory.
 * **Pokemon Announcing Integration** When an announcement from pokemon spawns, appear, these will be integrated with showcase! Hover over the species name to see the pokemon sprite.
 * **Cord Teleportation** Enhancing announcements that have cords, these will now have a clickable cord position that will teleport you.
+
+
+### 🏆 Supported Dex Modes
+Enabling CatchEmAll will allow you to chose a dex type to proceed, below are a list of the supported dex and their criteria.
+
+`LIVINGDEX`
+
+Rule: The player must physically own at least one copy of every Pokémon species in their PC or Party.
+Note: This mode does not track shiny status or specific regional forms—any variation of the species counts.
+
+`SHINYDEX`
+
+Rule: The player must physically own a Shiny variant of the Pokémon species in their PC or Party to get credit. Normal versions are ignored.
+
+`EVERYDEX`
+
+Rule: Checks the player's historical Pokédex data. As long as the base species has been caught at least once in their career, they get credit—even if they have since traded or released the Pokémon.
+
+`FORMDEX`
+
+Rule: An advanced Living Dex challenge. The player must physically own a copy of every single regional and seasonal form variation (e.g., Alolan vs. Kantonian, or the different Deerling seasons) in their PC or Party.
+Note: Overwhelming aesthetic patterns like Spinda or Vivillon are excluded to keep the challenge fun.
+
+`MASTERLIVINGDEX`
+
+Rule: The ultimate collector's challenge. To achieve completeness, the player's PC and Party must physically hold both the normal version and the shiny version for every single species and form variation.
+
 ---
 
 ## 📦 Installation
@@ -58,7 +86,7 @@ Running the base `/projectash` command opens a responsive textual wizard. Clicki
 | Function / Subfunction | Description | Command Base | Actions Available / Arguments |
 | :--- | :--- | :--- | :--- |
 | `special` | A custom personal whitelist of target species a player wants to track for themselves. | `/ash player special` | `check`, `enable`, `disable`, `add <species> [shinyFlag]`, `remove <species>`, `clear` |
-| `catchemall` | Tracks form metrics, alerting the player if a spawn matches an entry lacking within their specific form/shiny Pokédex. | `/ash player catchemall` | `check`, `enable`, `disable` |
+| `catchemall` | Tracks form metrics, alerting the player if a spawn matches an entry lacking within their specific form/shiny Pokédex. | `/ash player catchemall` | `check`, `update` |
 | `catchemall / localspawnsonly` | Safeguards tracking by only firing "Catch 'Em All" logs if you are the closest player driving that spawn radius. | `/ash player catchemall localspawnsonly` | `check`, `enable`, `disable` |
 
 ### 👑 Server Admin Commands
