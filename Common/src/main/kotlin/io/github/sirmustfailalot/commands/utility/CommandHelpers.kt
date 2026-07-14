@@ -1,6 +1,7 @@
 package io.github.sirmustfailalot.projectash.commands.utility
 
 import com.mojang.brigadier.context.CommandContext
+import io.github.sirmustfailalot.projectash.config.CatchEmAllType
 import io.github.sirmustfailalot.projectash.config.ShinyFlag
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.network.chat.Component
@@ -20,5 +21,16 @@ fun parseShinyFlag(value: String): ShinyFlag? =
         "include" -> ShinyFlag.INCLUDE
         "exclude" -> ShinyFlag.EXCLUDE
         "only" -> ShinyFlag.ONLY
+        else -> null
+    }
+
+fun parseCatchEmAllFlag(value: String): CatchEmAllType? =
+    when (value.trim().lowercase()) {
+        "disabled" -> CatchEmAllType.DISABLED
+        "livingdex" -> CatchEmAllType.LIVINGDEX
+        "shinydex" -> CatchEmAllType.SHINYDEX
+        "everydex" -> CatchEmAllType.EVERYDEX
+        "formdex" -> CatchEmAllType.FORMDEX
+        "masterlivingdex" -> CatchEmAllType.MASTERLIVINGDEX
         else -> null
     }

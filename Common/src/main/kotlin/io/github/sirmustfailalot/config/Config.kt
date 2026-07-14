@@ -15,7 +15,7 @@ data class PokeRule(
 )
 
 data class CatchEmAllRule(
-    var enabled: Boolean = false,
+    var type: CatchEmAllType = CatchEmAllType.DISABLED,
     var localSpawnsOnly: Boolean = true
 )
 
@@ -28,6 +28,15 @@ enum class ShinyFlag {
     INCLUDE,
     EXCLUDE,
     ONLY
+}
+
+enum class CatchEmAllType {
+    DISABLED,
+    LIVINGDEX,
+    SHINYDEX,
+    EVERYDEX,
+    FORMDEX,
+    MASTERLIVINGDEX
 }
 
 data class ShowcaseRule(
@@ -211,10 +220,10 @@ object Config {
         return playerRule
     }
 
-    fun toggleCatchEmAllModeEnabled(playerName: String, toggle: Boolean): Boolean {
+    fun toggleCatchEmAllModeEnabled(playerName: String, catchEmAllType: CatchEmAllType): Boolean {
         val p = ensurePlayer(playerName)
         write {
-            it.player[playerName]!!.catchEmAllMode.enabled = toggle
+            it.player[playerName]!!.catchEmAllMode.type = catchEmAllType
         }
         return true
     }
